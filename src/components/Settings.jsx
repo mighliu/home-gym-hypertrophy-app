@@ -24,6 +24,7 @@ export default function Settings({
   const [syncPassword, setSyncPassword] = useState("");
   const [authError, setAuthError] = useState("");
   const [authSuccess, setAuthSuccess] = useState("");
+  const [showCustomConfig, setShowCustomConfig] = useState(false);
 
   const handleSettingChange = (field, val) => {
     let finalVal = val;
@@ -368,50 +369,73 @@ export default function Settings({
 
           {cloudSyncEnabled && (
             <div className="firebase-config-fields animated" style={{ borderTop: "1px dashed var(--border-color)", paddingTop: "1rem" }}>
-              <span className="presets-label" style={{ marginBottom: "0.75rem" }}>Firebase Project Credentials</span>
               
-              <div className="settings-inputs-grid-2">
-                <div className="form-group">
-                  <label className="form-label-small">Firebase API Key</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="Paste apiKey"
-                    value={firebaseConfig.apiKey || ""}
-                    onChange={(e) => setFirebaseConfig(prev => ({ ...prev, apiKey: e.target.value.trim() }))}
-                  />
+              {!!(import.meta.env.VITE_FIREBASE_API_KEY && import.meta.env.VITE_FIREBASE_PROJECT_ID) && (
+                <div style={{ marginBottom: "1.25rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                  <p style={{ fontSize: "0.85rem", color: "var(--color-primary)", fontWeight: "600", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                    <span>✓ Connected to default cloud server</span>
+                  </p>
+                  <div>
+                    <button 
+                      type="button" 
+                      className="btn btn-secondary" 
+                      style={{ padding: "0.35rem 0.6rem", fontSize: "0.75rem" }}
+                      onClick={() => setShowCustomConfig(!showCustomConfig)}
+                    >
+                      {showCustomConfig ? "🙈 Hide Configuration Details" : "🔧 Edit Custom Configuration"}
+                    </button>
+                  </div>
                 </div>
-                <div className="form-group">
-                  <label className="form-label-small">Auth Domain</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="e.g. project-id.firebaseapp.com"
-                    value={firebaseConfig.authDomain || ""}
-                    onChange={(e) => setFirebaseConfig(prev => ({ ...prev, authDomain: e.target.value.trim() }))}
-                  />
+              )}
+
+              {(!import.meta.env.VITE_FIREBASE_API_KEY || !import.meta.env.VITE_FIREBASE_PROJECT_ID || showCustomConfig) && (
+                <div className="animated" style={{ marginBottom: "1rem" }}>
+                  <span className="presets-label" style={{ marginBottom: "0.75rem" }}>Firebase Project Credentials</span>
+                  
+                  <div className="settings-inputs-grid-2">
+                    <div className="form-group">
+                      <label className="form-label-small">Firebase API Key</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="Paste apiKey"
+                        value={firebaseConfig.apiKey || ""}
+                        onChange={(e) => setFirebaseConfig(prev => ({ ...prev, apiKey: e.target.value.trim() }))}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label-small">Auth Domain</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="e.g. project-id.firebaseapp.com"
+                        value={firebaseConfig.authDomain || ""}
+                        onChange={(e) => setFirebaseConfig(prev => ({ ...prev, authDomain: e.target.value.trim() }))}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label-small">Project ID</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="e.g. my-project-123"
+                        value={firebaseConfig.projectId || ""}
+                        onChange={(e) => setFirebaseConfig(prev => ({ ...prev, projectId: e.target.value.trim() }))}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label-small">App ID</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="Paste appId (1:1234:web:...)"
+                        value={firebaseConfig.appId || ""}
+                        onChange={(e) => setFirebaseConfig(prev => ({ ...prev, appId: e.target.value.trim() }))}
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="form-group">
-                  <label className="form-label-small">Project ID</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="e.g. my-project-123"
-                    value={firebaseConfig.projectId || ""}
-                    onChange={(e) => setFirebaseConfig(prev => ({ ...prev, projectId: e.target.value.trim() }))}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label-small">App ID</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="Paste appId (1:1234:web:...)"
-                    value={firebaseConfig.appId || ""}
-                    onChange={(e) => setFirebaseConfig(prev => ({ ...prev, appId: e.target.value.trim() }))}
-                  />
-                </div>
-              </div>
+              )}
 
               <div className="firebase-auth-section" style={{ marginTop: "1.25rem", borderTop: "1px dashed var(--border-color)", paddingTop: "1rem" }}>
                 <span className="presets-label">User Account Authentication</span>
