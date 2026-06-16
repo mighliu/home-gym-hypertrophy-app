@@ -172,7 +172,8 @@ export default function WorkoutLogger({
   plateInventory,
   settings,
   checkedMobility,
-  setCheckedMobility
+  setCheckedMobility,
+  onSaveSession
 }) {
   const [activeSwapIdx, setActiveSwapIdx] = useState(null);
   const [activeSwapPattern, setActiveSwapPattern] = useState("");
@@ -255,41 +256,84 @@ export default function WorkoutLogger({
 
   // Session Stopwatch
   const sessionStartKey = `hgh_session_start_${meso}-${week}-${day}`;
+  const sessionPausedKey = `hgh_session_paused_${meso}-${week}-${day}`;
+  const sessionAccumulatedKey = `hgh_session_accumulated_${meso}-${week}-${day}`;
+
   const [sessionElapsed, setSessionElapsed] = useState(0);
+  const [isSessionPaused, setIsSessionPaused] = useState(false);
 
   useEffect(() => {
-    let active = true;
     const start = localStorage.getItem(sessionStartKey);
+    const paused = localStorage.getItem(sessionPausedKey) === "true";
+    const accumulated = parseInt(localStorage.getItem(sessionAccumulatedKey) || "0", 10);
 
-    setTimeout(() => {
-      if (!active) return;
+    Promise.resolve().then(() => {
+      setIsSessionPaused(paused);
       if (!start) {
         setSessionElapsed(0);
+      } else if (paused) {
+        setSessionElapsed(accumulated);
       } else {
-        setSessionElapsed(Math.floor((Date.now() - parseInt(start, 10)) / 1000));
+        setSessionElapsed(Math.floor((Date.now() - parseInt(start, 10)) / 1000) + accumulated);
       }
-    }, 0);
+    });
+  }, [sessionStartKey, sessionPausedKey, sessionAccumulatedKey]);
 
-    if (start) {
-      const interval = setInterval(() => {
-        if (!active) return;
-        setSessionElapsed(Math.floor((Date.now() - parseInt(start, 10)) / 1000));
+  useEffect(() => {
+    let interval = null;
+    const start = localStorage.getItem(sessionStartKey);
+    const paused = localStorage.getItem(sessionPausedKey) === "true";
+    const accumulated = parseInt(localStorage.getItem(sessionAccumulatedKey) || "0", 10);
+
+    if (start && !paused && !isSessionPaused) {
+      interval = setInterval(() => {
+        setSessionElapsed(Math.floor((Date.now() - parseInt(start, 10)) / 1000) + accumulated);
       }, 1000);
-      return () => {
-        active = false;
-        clearInterval(interval);
-      };
     }
+
     return () => {
-      active = false;
+      if (interval) clearInterval(interval);
     };
-  }, [sessionStartKey]);
+  }, [sessionStartKey, isSessionPaused, sessionPausedKey, sessionAccumulatedKey]);
 
   const checkStartSessionTimer = (nowTimestamp) => {
     const start = localStorage.getItem(sessionStartKey);
     if (!start) {
-      localStorage.setItem(sessionStartKey, nowTimestamp);
+      localStorage.setItem(sessionStartKey, String(nowTimestamp));
+      localStorage.setItem(sessionPausedKey, "false");
+      localStorage.setItem(sessionAccumulatedKey, "0");
       setSessionElapsed(1);
+      setIsSessionPaused(false);
+    }
+  };
+
+  const handleToggleSessionPause = () => {
+    const start = localStorage.getItem(sessionStartKey);
+    if (!start) return;
+
+    const paused = localStorage.getItem(sessionPausedKey) === "true";
+    const accumulated = parseInt(localStorage.getItem(sessionAccumulatedKey) || "0", 10);
+
+    if (paused) {
+      localStorage.setItem(sessionStartKey, String(Date.now()));
+      localStorage.setItem(sessionPausedKey, "false");
+      setIsSessionPaused(false);
+    } else {
+      const currentSessionElapsed = Math.floor((Date.now() - parseInt(start, 10)) / 1000) + accumulated;
+      localStorage.setItem(sessionAccumulatedKey, String(currentSessionElapsed));
+      localStorage.setItem(sessionPausedKey, "true");
+      setIsSessionPaused(true);
+      setSessionElapsed(currentSessionElapsed);
+    }
+  };
+
+  const handleResetSessionTimer = () => {
+    if (window.confirm("Are you sure you want to reset the session stopwatch?")) {
+      localStorage.removeItem(sessionStartKey);
+      localStorage.removeItem(sessionPausedKey);
+      localStorage.removeItem(sessionAccumulatedKey);
+      setSessionElapsed(0);
+      setIsSessionPaused(false);
     }
   };
 
@@ -336,9 +380,53 @@ export default function WorkoutLogger({
       return true;
     });
 
+    const getTonnageAfterUpdate = () => {
+      let tonnage = 0;
+      dayData.exercises.forEach((ex, exIdx) => {
+        const name = getExName(ex.exercise, exIdx);
+        const isCmp = COMPOUND_PATTERNS.includes(ex.pattern);
+        const totalSets = isCmp ? activeWeekInfo.setsComp : activeWeekInfo.setsIso;
+        
+        for (let s = 1; s <= totalSets; s++) {
+          let isSetCompleted = false;
+          let setWeight = 0;
+          let setReps = 0;
+
+          if (name === exName && s === setIndex) {
+            isSetCompleted = newCompleted;
+            setWeight = finalWeight;
+            setReps = finalReps;
+          } else {
+            const key = `${meso}-${week}-${day}-${name}-${s}`;
+            const log = workoutLogs[key];
+            if (log) {
+              isSetCompleted = !!log.completed;
+              setWeight = log.weight !== undefined && log.weight !== "" ? parseFloat(log.weight) : 0;
+              setReps = log.reps !== undefined && log.reps !== "" ? parseInt(log.reps) : 0;
+            }
+          }
+
+          if (isSetCompleted && setWeight > 0 && setReps > 0) {
+            const profile = getDynamicProfile(name);
+            if (profile.isWeighted) {
+              tonnage += setWeight * setReps;
+            }
+          }
+        }
+      });
+      return tonnage;
+    };
+
     if (isSessionCompleteNow && !hasCelebrated) {
       setShowCelebration(true);
       setHasCelebrated(true);
+      if (onSaveSession) {
+        onSaveSession(`${meso}-${week}-${day}`, {
+          duration: sessionElapsed,
+          tonnage: getTonnageAfterUpdate(),
+          completedAt: nowTimestamp
+        });
+      }
     } else if (!isSessionCompleteNow) {
       setHasCelebrated(false);
       setShowCelebration(false);
@@ -1074,7 +1162,55 @@ export default function WorkoutLogger({
         <div className="summary-metrics">
           <div className="metric">
             <span className="metric-label">Session Time</span>
-            <span className="metric-val">{formatElapsedTime(sessionElapsed)}</span>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+              <span className="metric-val">{formatElapsedTime(sessionElapsed)}</span>
+              {sessionElapsed > 0 && (
+                <div style={{ display: "flex", gap: "0.4rem" }}>
+                  <button
+                    type="button"
+                    onClick={handleToggleSessionPause}
+                    title={isSessionPaused ? "Resume Session Timer" : "Pause Session Timer"}
+                    style={{
+                      background: isSessionPaused ? "rgba(57, 255, 20, 0.1)" : "rgba(0, 242, 254, 0.1)",
+                      border: isSessionPaused ? "1px solid rgba(57, 255, 20, 0.3)" : "1px solid rgba(0, 242, 254, 0.3)",
+                      borderRadius: "6px",
+                      color: isSessionPaused ? "var(--color-secondary)" : "var(--color-primary)",
+                      padding: "0.2rem 0.5rem",
+                      fontSize: "0.75rem",
+                      fontWeight: "600",
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.25rem",
+                      transition: "all 0.2s"
+                    }}
+                  >
+                    {isSessionPaused ? "▶ Resume" : "⏸ Pause"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleResetSessionTimer}
+                    title="Reset Session Timer"
+                    style={{
+                      background: "rgba(255, 255, 255, 0.05)",
+                      border: "1px solid rgba(255, 255, 255, 0.15)",
+                      borderRadius: "6px",
+                      color: "var(--color-text-muted)",
+                      padding: "0.2rem 0.5rem",
+                      fontSize: "0.75rem",
+                      fontWeight: "600",
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.25rem",
+                      transition: "all 0.2s"
+                    }}
+                  >
+                    🔄 Reset
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
           <div className="metric">
             <span className="metric-label">Estimated Tonnage</span>

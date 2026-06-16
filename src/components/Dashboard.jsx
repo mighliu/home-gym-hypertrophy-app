@@ -18,9 +18,48 @@ export default function Dashboard({
     Calves: { mev: 6, mrv: 16 },
     Abs: { mev: 6, mrv: 16 },
     Traps: { mev: 6, mrv: 16 }
-  }
+  },
+  sessionLogs = {}
 }) {
   const [chartMode, setChartMode] = useState("meso"); // "meso" or "week"
+  const [pacingMode, setPacingMode] = useState("duration"); // "duration" or "density"
+
+  const getPacingStats = (sorted) => {
+    if (sorted.length === 0) return { avgMin: 0, maxMin: 0, minMin: 0, avgDensity: 0, total: 0 };
+    const durations = sorted.map(s => s.duration);
+    const densities = sorted.map(s => s.density);
+    const sumDuration = durations.reduce((a, b) => a + b, 0);
+    const sumDensity = densities.reduce((a, b) => a + b, 0);
+    return {
+      avgMin: Math.round(sumDuration / sorted.length),
+      maxMin: Math.round(Math.max(...durations)),
+      minMin: Math.round(Math.min(...durations)),
+      avgDensity: Math.round(sumDensity / sorted.length),
+      total: sorted.length
+    };
+  };
+
+  const sortedSessions = Object.entries(sessionLogs || {})
+    .map(([key, data]) => {
+      const parts = key.split("-");
+      const mesoNum = parseInt(parts[0], 10);
+      const weekNum = parseInt(parts[1], 10);
+      const dayNum = parseInt(parts[2], 10);
+      const durationMin = (data.duration || 0) / 60;
+      const tonnage = data.tonnage || 0;
+      const density = durationMin > 0 ? tonnage / durationMin : 0;
+      return {
+        key,
+        label: `M${mesoNum}W${weekNum}D${dayNum}`,
+        duration: parseFloat(durationMin.toFixed(1)),
+        density: parseFloat(density.toFixed(0)),
+        completedAt: data.completedAt || 0
+      };
+    })
+    .filter((s) => s.duration > 0)
+    .sort((a, b) => a.completedAt - b.completedAt);
+
+  const pacingStats = getPacingStats(sortedSessions);
 
   // Tally of sets completed for the current week per muscle group
   const getMuscleGroupSets = () => {
@@ -534,6 +573,134 @@ export default function Dashboard({
     );
   };
 
+  const pagingValueFormatted = (val) => {
+    if (pacingMode === "duration") {
+      return `${val.toFixed(1)}m`;
+    }
+    return `${val.toFixed(0)}`;
+  };
+
+  const renderPacingChart = () => {
+    const chartSessions = sortedSessions.slice(-20);
+
+    if (chartSessions.length === 0) {
+      return (
+        <div className="chart-placeholder" style={{ padding: "3rem 1rem", textAlign: "center" }}>
+          <p style={{ color: "var(--color-text-muted)" }}>
+            No training session time logs recorded yet. Complete a full workout day to see your duration and pacing trends.
+          </p>
+        </div>
+      );
+    }
+
+    const values = chartSessions.map((s) => pacingMode === "duration" ? s.duration : s.density);
+    const minVal = Math.max(0, Math.min(...values) * 0.9);
+    const maxVal = Math.max(10, Math.max(...values) * 1.1);
+    const valRange = maxVal - minVal;
+
+    const chartWidth = 600;
+    const chartHeight = 220;
+    const paddingLeft = 45;
+    const paddingRight = 20;
+    const paddingTop = 30;
+    const paddingBottom = 40;
+
+    const getX = (idx) => {
+      const drawableWidth = chartWidth - paddingLeft - paddingRight;
+      if (chartSessions.length === 1) return paddingLeft + drawableWidth / 2;
+      return paddingLeft + (idx * drawableWidth) / (chartSessions.length - 1);
+    };
+
+    const getY = (val) => {
+      const drawableHeight = chartHeight - paddingTop - paddingBottom;
+      return chartHeight - paddingBottom - ((val - minVal) * drawableHeight) / valRange;
+    };
+
+    const points = chartSessions.map((s, idx) => ({
+      x: getX(idx),
+      y: getY(pacingMode === "duration" ? s.duration : s.density),
+      val: pacingMode === "duration" ? s.duration : s.density,
+      label: s.label
+    }));
+
+    const pathData = points.reduce((acc, p, idx) => {
+      return acc + `${idx === 0 ? "M" : "L"} ${p.x} ${p.y} `;
+    }, "");
+
+    const gridTicks = 4;
+    const yTicks = [];
+    for (let i = 0; i <= gridTicks; i++) {
+      yTicks.push(minVal + (valRange * i) / gridTicks);
+    }
+
+    return (
+      <div className="svg-chart-container">
+        <svg className="svg-chart" viewBox={`0 0 ${chartWidth} ${chartHeight}`}>
+          {yTicks.map((val, idx) => {
+            const y = getY(val);
+            const displayVal = pacingMode === "duration" ? `${val.toFixed(0)}m` : `${val.toFixed(0)}`;
+            return (
+              <g key={idx} className="grid-line-group">
+                <line x1={paddingLeft} y1={y} x2={chartWidth - paddingRight} y2={y} stroke="var(--border-color)" strokeWidth="1" />
+                <text x={paddingLeft - 8} y={y + 4} fill="var(--color-text-muted)" fontSize="10" textAnchor="end">{displayVal}</text>
+              </g>
+            );
+          })}
+
+          {points.map((p, idx) => {
+            const isFirst = idx === 0;
+            const isLast = idx === points.length - 1;
+            const isMiddle = idx === Math.floor(points.length / 2);
+            if (!isFirst && !isLast && !isMiddle) return null;
+
+            return (
+              <text key={idx} x={p.x} y={chartHeight - 10} fill="var(--color-text-muted)" fontSize="9" textAnchor="middle">
+                {p.label}
+              </text>
+            );
+          })}
+
+          {points.length > 1 && (
+            <path
+              d={pathData}
+              fill="none"
+              stroke={pacingMode === "duration" ? "var(--color-primary)" : "var(--color-secondary)"}
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="chart-path"
+            />
+          )}
+
+          {points.map((p, idx) => (
+            <g key={idx}>
+              <circle
+                cx={p.x}
+                cy={p.y}
+                r="4"
+                fill="var(--bg-card-solid)"
+                stroke={pacingMode === "duration" ? "var(--color-primary)" : "var(--color-secondary)"}
+                strokeWidth="2.5"
+              />
+              {(idx === points.length - 1 || idx === 0) && (
+                <text
+                  x={p.x}
+                  y={p.y - 10}
+                  fill="var(--color-text-main)"
+                  fontSize="10"
+                  fontWeight="bold"
+                  textAnchor="middle"
+                >
+                  {pagingValueFormatted(p.val)}
+                </text>
+              )}
+            </g>
+          ))}
+        </svg>
+      </div>
+    );
+  };
+
   return (
     <div className="dashboard-tab animated">
       {/* HEADER CARDS: ROLLING AVERAGES & DYNAMIC COACHING */}
@@ -702,6 +869,77 @@ export default function Dashboard({
             <span className="badge badge-teal">Daily Logged Weight</span>
           </div>
           {renderBodyweightChart()}
+        </div>
+      </div>
+
+      {/* THIRD GRID FOR WORKOUT PACING & TIME TRENDS */}
+      <div className="grid-2" style={{ marginTop: "1.5rem" }}>
+        {/* PACING CHART */}
+        <div className="card chart-card-dash" style={{ margin: "0" }}>
+          <div className="chart-header-row">
+            <div className="card-title">Workout Pacing & Time Trends</div>
+            <div className="chart-mode-toggles">
+              <button
+                type="button"
+                className={`toggle-mode-btn ${pacingMode === "duration" ? "active" : ""}`}
+                onClick={() => setPacingMode("duration")}
+              >
+                Duration (m)
+              </button>
+              <button
+                type="button"
+                className={`toggle-mode-btn ${pacingMode === "density" ? "active" : ""}`}
+                onClick={() => setPacingMode("density")}
+              >
+                Density (lbs/m)
+              </button>
+            </div>
+          </div>
+          {renderPacingChart()}
+        </div>
+
+        {/* PACING STATS */}
+        <div className="card volume-landmarks-card" style={{ margin: "0", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+          <div>
+            <div className="landmarks-header" style={{ marginBottom: "1rem" }}>
+              <div className="card-title">Time & Pacing Analytics</div>
+              <span className="badge badge-purple">Macrocycle Summary</span>
+            </div>
+            <p className="landmarks-subtitle" style={{ marginBottom: "1.5rem" }}>
+              Key performance indicators tracking your workout density, session pacing, and time efficiency.
+            </p>
+            
+            {sortedSessions.length > 0 ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(255, 255, 255, 0.05)", paddingBottom: "0.75rem" }}>
+                  <span style={{ fontSize: "0.85rem", color: "var(--color-text-muted)" }}>Average Session Time</span>
+                  <span style={{ fontSize: "1.1rem", fontWeight: "700", color: "var(--color-text-main)" }}>{pacingStats.avgMin} minutes</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(255, 255, 255, 0.05)", paddingBottom: "0.75rem" }}>
+                  <span style={{ fontSize: "0.85rem", color: "var(--color-text-muted)" }}>Time Range (Shortest / Longest)</span>
+                  <span style={{ fontSize: "1.1rem", fontWeight: "700", color: "var(--color-text-main)" }}>{pacingStats.minMin}m / {pacingStats.maxMin}m</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(255, 255, 255, 0.05)", paddingBottom: "0.75rem" }}>
+                  <span style={{ fontSize: "0.85rem", color: "var(--color-text-muted)" }}>Average Training Density</span>
+                  <span style={{ fontSize: "1.1rem", fontWeight: "700", color: "var(--color-secondary)" }}>{pacingStats.avgDensity.toLocaleString()} lbs / min</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "0.25rem" }}>
+                  <span style={{ fontSize: "0.85rem", color: "var(--color-text-muted)" }}>Total Sessions Tracked</span>
+                  <span style={{ fontSize: "1.1rem", fontWeight: "700", color: "var(--color-text-main)" }}>{pacingStats.total} workouts</span>
+                </div>
+              </div>
+            ) : (
+              <div style={{ textAlign: "center", padding: "2rem 1rem", color: "var(--color-text-muted)", fontSize: "0.85rem" }}>
+                Complete and log a full training day to populate pacing metrics.
+              </div>
+            )}
+          </div>
+          
+          {sortedSessions.length > 0 && (
+            <div style={{ marginTop: "1.5rem", padding: "1rem", background: "rgba(0, 242, 254, 0.04)", border: "1px solid rgba(0, 242, 254, 0.15)", borderRadius: "8px", fontSize: "0.8rem", color: "var(--color-text-muted)", lineHeight: "1.4" }}>
+              💡 <strong>Coaching Tip:</strong> Aim to maintain or increase your **Training Density** over the macrocycle. If it decreases, you may need to reduce rest periods or increase lifting intensity.
+            </div>
+          )}
         </div>
       </div>
 

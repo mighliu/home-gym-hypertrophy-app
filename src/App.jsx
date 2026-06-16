@@ -178,6 +178,11 @@ export default function App() {
     return {};
   });
 
+  const [sessionLogs, setSessionLogs] = useState(() => {
+    const data = localStorage.getItem("hgh_session_logs");
+    return data ? JSON.parse(data) : {};
+  });
+
   // Rest Timer State
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [timerMax, setTimerMax] = useState(0);
@@ -202,6 +207,7 @@ export default function App() {
     if (data.volumeLandmarks) setVolumeLandmarks(data.volumeLandmarks);
     if (data.plateInventory) setPlateInventory(data.plateInventory);
     if (data.settings) setSettings(data.settings);
+    if (data.sessionLogs) setSessionLogs(data.sessionLogs);
   };
 
   const handleCloudLogin = async (email, password) => {
@@ -284,7 +290,8 @@ export default function App() {
         plateInventory,
         settings,
         checkedMobility,
-        volumeLandmarks
+        volumeLandmarks,
+        sessionLogs
       };
 
       saveToCloud(firebaseUser.uid, backup)
@@ -307,7 +314,8 @@ export default function App() {
     plateInventory,
     settings,
     checkedMobility,
-    volumeLandmarks
+    volumeLandmarks,
+    sessionLogs
   ]);
 
   // Sync states to LocalStorage
@@ -397,6 +405,18 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("hgh_slot_overrides", JSON.stringify(slotOverrides));
   }, [slotOverrides]);
+
+  useEffect(() => {
+    localStorage.setItem("hgh_session_logs", JSON.stringify(sessionLogs));
+  }, [sessionLogs]);
+
+  const handleSaveSession = (sessionKey, sessionData) => {
+    updateLocalChange();
+    setSessionLogs((prev) => ({
+      ...prev,
+      [sessionKey]: sessionData
+    }));
+  };
 
   // Timer Ticking Loop
   useEffect(() => {
@@ -504,7 +524,8 @@ export default function App() {
       plateInventory,
       settings,
       checkedMobility,
-      volumeLandmarks
+      volumeLandmarks,
+      sessionLogs
     };
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backup, null, 2));
     const downloadAnchor = document.createElement("a");
@@ -532,6 +553,7 @@ export default function App() {
           const importedSlotOverrides = data.slotOverrides || {};
           const importedCardioLogs = data.cardioLogs || {};
           const importedCheckedMobility = data.checkedMobility || {};
+          const importedSessionLogs = data.sessionLogs || {};
           const importedVolumeLandmarks = data.volumeLandmarks || {
             Chest: { mev: 8, mrv: 22 },
             Back: { mev: 8, mrv: 22 },
@@ -576,6 +598,7 @@ export default function App() {
           setVolumeLandmarks(importedVolumeLandmarks);
           setPlateInventory(importedPlateInventory);
           setSettings(importedSettings);
+          setSessionLogs(importedSessionLogs);
           
           // Save to local storage
           localStorage.setItem("hgh_workout_logs", JSON.stringify(importedWorkoutLogs));
@@ -586,6 +609,7 @@ export default function App() {
           localStorage.setItem("hgh_volume_landmarks", JSON.stringify(importedVolumeLandmarks));
           localStorage.setItem("hgh_plate_inventory", JSON.stringify(importedPlateInventory));
           localStorage.setItem("hgh_settings", JSON.stringify(importedSettings));
+          localStorage.setItem("hgh_session_logs", JSON.stringify(importedSessionLogs));
           
           resolve(true);
         } catch (err) {
@@ -671,6 +695,7 @@ export default function App() {
                 currentWeek={week}
                 currentMeso={meso}
                 volumeLandmarks={volumeLandmarks}
+                sessionLogs={sessionLogs}
               />
             )}
             {activeTab === "workout" && (
@@ -691,6 +716,7 @@ export default function App() {
                 settings={settings}
                 checkedMobility={checkedMobility}
                 setCheckedMobility={handleUpdateCheckedMobility}
+                onSaveSession={handleSaveSession}
               />
             )}
             {activeTab === "history" && (
