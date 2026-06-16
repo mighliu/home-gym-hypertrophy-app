@@ -10,7 +10,6 @@ export default function Settings({
   onExportData,
   onImportData,
   firebaseConfig,
-  setFirebaseConfig,
   cloudSyncEnabled,
   setCloudSyncEnabled,
   firebaseUser,
@@ -24,7 +23,6 @@ export default function Settings({
   const [syncPassword, setSyncPassword] = useState("");
   const [authError, setAuthError] = useState("");
   const [authSuccess, setAuthSuccess] = useState("");
-  const [showCustomConfig, setShowCustomConfig] = useState(false);
 
   const handleSettingChange = (field, val) => {
     let finalVal = val;
@@ -369,152 +367,85 @@ export default function Settings({
 
           {cloudSyncEnabled && (
             <div className="firebase-config-fields animated" style={{ borderTop: "1px dashed var(--border-color)", paddingTop: "1rem" }}>
-              
-              {!!(import.meta.env.VITE_FIREBASE_API_KEY && import.meta.env.VITE_FIREBASE_PROJECT_ID) && (
-                <div style={{ marginBottom: "1.25rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                  <p style={{ fontSize: "0.85rem", color: "var(--color-primary)", fontWeight: "600", display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                    <span>✓ Connected to default cloud server</span>
-                  </p>
-                  <div>
-                    <button 
-                      type="button" 
-                      className="btn btn-secondary" 
-                      style={{ padding: "0.35rem 0.6rem", fontSize: "0.75rem" }}
-                      onClick={() => setShowCustomConfig(!showCustomConfig)}
-                    >
-                      {showCustomConfig ? "🙈 Hide Configuration Details" : "🔧 Edit Custom Configuration"}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {(!import.meta.env.VITE_FIREBASE_API_KEY || !import.meta.env.VITE_FIREBASE_PROJECT_ID || showCustomConfig) && (
-                <div className="animated" style={{ marginBottom: "1rem" }}>
-                  <span className="presets-label" style={{ marginBottom: "0.75rem" }}>Firebase Project Credentials</span>
+              {!isConfigComplete ? (
+                <p className="sync-warn-text">
+                  ⚠️ Cloud Sync is not configured on this server. Environment variables are missing.
+                </p>
+              ) : (
+                <div className="firebase-auth-section">
+                  <span className="presets-label">User Account Authentication</span>
                   
-                  <div className="settings-inputs-grid-2">
-                    <div className="form-group">
-                      <label className="form-label-small">Firebase API Key</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        placeholder="Paste apiKey"
-                        value={firebaseConfig.apiKey || ""}
-                        onChange={(e) => setFirebaseConfig(prev => ({ ...prev, apiKey: e.target.value.trim() }))}
-                      />
+                  {firebaseUser ? (
+                    <div className="sync-status-indicator animated" style={{ borderLeft: "3px solid var(--color-primary)", paddingLeft: "0.75rem", margin: "0.75rem 0" }}>
+                      <p style={{ fontSize: "0.85rem", color: "var(--color-text-main)", fontWeight: "600" }}>
+                        Connected to Cloud Sync 🌐
+                      </p>
+                      <p style={{ fontSize: "0.75rem", color: "var(--color-text-muted)", marginTop: "0.15rem" }}>
+                        Signed in as: <strong>{firebaseUser.email}</strong>
+                      </p>
+                      <button type="button" className="btn btn-secondary" style={{ marginTop: "0.75rem", padding: "0.35rem 0.75rem", fontSize: "0.75rem" }} onClick={handleLogoutClick}>
+                        🚪 Sign Out
+                      </button>
                     </div>
-                    <div className="form-group">
-                      <label className="form-label-small">Auth Domain</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        placeholder="e.g. project-id.firebaseapp.com"
-                        value={firebaseConfig.authDomain || ""}
-                        onChange={(e) => setFirebaseConfig(prev => ({ ...prev, authDomain: e.target.value.trim() }))}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label-small">Project ID</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        placeholder="e.g. my-project-123"
-                        value={firebaseConfig.projectId || ""}
-                        onChange={(e) => setFirebaseConfig(prev => ({ ...prev, projectId: e.target.value.trim() }))}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label-small">App ID</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        placeholder="Paste appId (1:1234:web:...)"
-                        value={firebaseConfig.appId || ""}
-                        onChange={(e) => setFirebaseConfig(prev => ({ ...prev, appId: e.target.value.trim() }))}
-                      />
-                    </div>
-                  </div>
+                  ) : (
+                    <form onSubmit={handleLoginSubmit} style={{ marginTop: "0.75rem" }}>
+                      <div className="settings-inputs-grid-2">
+                        <div className="form-group">
+                          <label className="form-label-small">Sync Email Address</label>
+                          <input
+                            type="email"
+                            className="form-input"
+                            placeholder="e.g. gym@sync.com"
+                            value={syncEmail}
+                            onChange={(e) => setSyncEmail(e.target.value)}
+                            required
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label-small">Password</label>
+                          <input
+                            type="password"
+                            className="form-input"
+                            placeholder="••••••••"
+                            value={syncPassword}
+                            onChange={(e) => setSyncPassword(e.target.value)}
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      {authError && (
+                        <div className="import-status-banner status-error" style={{ fontSize: "0.80rem", margin: "0.5rem 0" }}>
+                          {authError}
+                        </div>
+                      )}
+                      {authSuccess && (
+                        <div className="import-status-banner status-success" style={{ fontSize: "0.80rem", margin: "0.5rem 0" }}>
+                          {authSuccess}
+                        </div>
+                      )}
+
+                      <div className="sync-buttons-row">
+                        <button
+                          type="submit"
+                          className="btn btn-primary sync-btn-auth"
+                          disabled={!syncEmail || !syncPassword}
+                        >
+                          🔑 Sign In
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-secondary sync-btn-auth"
+                          disabled={!syncEmail || !syncPassword}
+                          onClick={handleRegisterSubmit}
+                        >
+                          📝 Create Account
+                        </button>
+                      </div>
+                    </form>
+                  )}
                 </div>
               )}
-
-              <div className="firebase-auth-section" style={{ marginTop: "1.25rem", borderTop: "1px dashed var(--border-color)", paddingTop: "1rem" }}>
-                <span className="presets-label">User Account Authentication</span>
-                
-                {firebaseUser ? (
-                  <div className="sync-status-indicator animated" style={{ borderLeft: "3px solid var(--color-primary)", paddingLeft: "0.75rem", margin: "0.75rem 0" }}>
-                    <p style={{ fontSize: "0.85rem", color: "var(--color-text-main)", fontWeight: "600" }}>
-                      Connected to Cloud Sync 🌐
-                    </p>
-                    <p style={{ fontSize: "0.75rem", color: "var(--color-text-muted)", marginTop: "0.15rem" }}>
-                      Signed in as: <strong>{firebaseUser.email}</strong>
-                    </p>
-                    <button type="button" className="btn btn-secondary" style={{ marginTop: "0.75rem", padding: "0.35rem 0.75rem", fontSize: "0.75rem" }} onClick={handleLogoutClick}>
-                      🚪 Sign Out
-                    </button>
-                  </div>
-                ) : (
-                  <form onSubmit={handleLoginSubmit} style={{ marginTop: "0.75rem" }}>
-                    {!isConfigComplete && (
-                      <p className="sync-warn-text">⚠️ Configure Firebase credentials first to enable user authentication.</p>
-                    )}
-                    
-                    <div className="settings-inputs-grid-2" style={{ opacity: isConfigComplete ? 1 : 0.5 }}>
-                      <div className="form-group">
-                        <label className="form-label-small">Sync Email Address</label>
-                        <input
-                          type="email"
-                          className="form-input"
-                          placeholder="e.g. gym@sync.com"
-                          disabled={!isConfigComplete}
-                          value={syncEmail}
-                          onChange={(e) => setSyncEmail(e.target.value)}
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label className="form-label-small">Password</label>
-                        <input
-                          type="password"
-                          className="form-input"
-                          placeholder="••••••••"
-                          disabled={!isConfigComplete}
-                          value={syncPassword}
-                          onChange={(e) => setSyncPassword(e.target.value)}
-                        />
-                      </div>
-                    </div>
-
-                    {authError && (
-                      <div className="import-status-banner status-error" style={{ fontSize: "0.80rem", margin: "0.5rem 0" }}>
-                        {authError}
-                      </div>
-                    )}
-                    {authSuccess && (
-                      <div className="import-status-banner status-success" style={{ fontSize: "0.80rem", margin: "0.5rem 0" }}>
-                        {authSuccess}
-                      </div>
-                    )}
-
-                    <div className="sync-buttons-row">
-                      <button
-                        type="submit"
-                        className="btn btn-primary sync-btn-auth"
-                        disabled={!isConfigComplete || !syncEmail || !syncPassword}
-                      >
-                        🔑 Sign In
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-secondary sync-btn-auth"
-                        disabled={!isConfigComplete || !syncEmail || !syncPassword}
-                        onClick={handleRegisterSubmit}
-                      >
-                        📝 Create Account
-                      </button>
-                    </div>
-                  </form>
-                )}
-              </div>
-
             </div>
           )}
         </div>

@@ -130,7 +130,7 @@ export default function App() {
   });
 
   // Firebase Sync Configuration & User States
-  const [firebaseConfig, setFirebaseConfig] = useState(() => {
+  const [firebaseConfig] = useState(() => {
     const data = localStorage.getItem("hgh_firebase_config");
     if (data) {
       try {
@@ -710,7 +710,6 @@ export default function App() {
             onExportData={handleExportData}
             onImportData={handleImportData}
             firebaseConfig={firebaseConfig}
-            setFirebaseConfig={setFirebaseConfig}
             cloudSyncEnabled={cloudSyncEnabled}
             setCloudSyncEnabled={setCloudSyncEnabled}
             firebaseUser={firebaseUser}
