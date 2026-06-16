@@ -6,6 +6,7 @@ import RestTimer from "./components/RestTimer";
 import CardioLog from "./components/CardioLog";
 import History from "./components/History";
 import Settings from "./components/Settings";
+import AuthScreen from "./components/AuthScreen";
 import { 
   initFirebase, 
   loginUser, 
@@ -598,144 +599,154 @@ export default function App() {
 
   return (
     <div className="app-container">
-      {/* HEADER */}
-      <header className="app-header">
-        <div className="brand-section">
-          <h1 className="app-title">Home Gym Hypertrophy</h1>
-          <p className="app-subtitle">Premium Autoregulated Macrocycle Tracker</p>
-        </div>
-      </header>
+      {cloudSyncEnabled && !firebaseUser ? (
+        <AuthScreen
+          onLogin={handleCloudLogin}
+          onRegister={handleCloudRegister}
+          onResetPassword={handleCloudResetPassword}
+        />
+      ) : (
+        <>
+          {/* HEADER */}
+          <header className="app-header">
+            <div className="brand-section">
+              <h1 className="app-title">Home Gym Hypertrophy</h1>
+              <p className="app-subtitle">Premium Autoregulated Macrocycle Tracker</p>
+            </div>
+          </header>
 
-      {/* NAVIGATION TABS */}
-      <nav className="nav-tabs">
-        <button
-          className={`nav-tab ${activeTab === "dashboard" ? "active" : ""}`}
-          onClick={() => setActiveTab("dashboard")}
-        >
-          <span className="nav-tab-icon">📊</span>
-          <span>Dashboard</span>
-        </button>
-        <button
-          className={`nav-tab ${activeTab === "workout" ? "active" : ""}`}
-          onClick={() => setActiveTab("workout")}
-        >
-          <span className="nav-tab-icon">🏋️</span>
-          <span>Workout Log</span>
-        </button>
-        <button
-          className={`nav-tab ${activeTab === "history" ? "active" : ""}`}
-          onClick={() => setActiveTab("history")}
-        >
-          <span className="nav-tab-icon">📅</span>
-          <span>History</span>
-        </button>
-        <button
-          className={`nav-tab ${activeTab === "cardio" ? "active" : ""}`}
-          onClick={() => setActiveTab("cardio")}
-        >
-          <span className="nav-tab-icon">🏃</span>
-          <span>Cardio Log</span>
-        </button>
-        <button
-          className={`nav-tab ${activeTab === "recovery" ? "active" : ""}`}
-          onClick={() => setActiveTab("recovery")}
-        >
-          <span className="nav-tab-icon">😴</span>
-          <span>Recovery</span>
-        </button>
-        <button
-          className={`nav-tab ${activeTab === "settings" ? "active" : ""}`}
-          onClick={() => setActiveTab("settings")}
-        >
-          <span className="nav-tab-icon">⚙️</span>
-          <span>Settings</span>
-        </button>
-      </nav>
+          {/* NAVIGATION TABS */}
+          <nav className="nav-tabs">
+            <button
+              className={`nav-tab ${activeTab === "dashboard" ? "active" : ""}`}
+              onClick={() => setActiveTab("dashboard")}
+            >
+              <span className="nav-tab-icon">📊</span>
+              <span>Dashboard</span>
+            </button>
+            <button
+              className={`nav-tab ${activeTab === "workout" ? "active" : ""}`}
+              onClick={() => setActiveTab("workout")}
+            >
+              <span className="nav-tab-icon">🏋️</span>
+              <span>Workout Log</span>
+            </button>
+            <button
+              className={`nav-tab ${activeTab === "history" ? "active" : ""}`}
+              onClick={() => setActiveTab("history")}
+            >
+              <span className="nav-tab-icon">📅</span>
+              <span>History</span>
+            </button>
+            <button
+              className={`nav-tab ${activeTab === "cardio" ? "active" : ""}`}
+              onClick={() => setActiveTab("cardio")}
+            >
+              <span className="nav-tab-icon">🏃</span>
+              <span>Cardio Log</span>
+            </button>
+            <button
+              className={`nav-tab ${activeTab === "recovery" ? "active" : ""}`}
+              onClick={() => setActiveTab("recovery")}
+            >
+              <span className="nav-tab-icon">😴</span>
+              <span>Recovery</span>
+            </button>
+            <button
+              className={`nav-tab ${activeTab === "settings" ? "active" : ""}`}
+              onClick={() => setActiveTab("settings")}
+            >
+              <span className="nav-tab-icon">⚙️</span>
+              <span>Settings</span>
+            </button>
+          </nav>
 
-      {/* ACTIVE CONTENT VIEW */}
-      <main className="app-main">
-        {activeTab === "dashboard" && (
-          <Dashboard
-            workoutLogs={workoutLogs}
-            recoveryLogs={recoveryLogs}
-            slotOverrides={slotOverrides}
-            currentWeek={week}
-            currentMeso={meso}
-            volumeLandmarks={volumeLandmarks}
-          />
-        )}
-        {activeTab === "workout" && (
-          <WorkoutLogger
-            meso={meso}
-            setMeso={setMeso}
-            week={week}
-            setWeek={setWeek}
-            day={day}
-            setDay={setDay}
-            workoutLogs={workoutLogs}
-            recoveryLogs={recoveryLogs}
-            slotOverrides={slotOverrides}
-            onSaveSet={handleSaveSet}
-            onUpdateSlotOverride={handleUpdateSlotOverride}
-            triggerRestTimer={triggerRestTimer}
-            plateInventory={plateInventory}
-            settings={settings}
-            checkedMobility={checkedMobility}
-            setCheckedMobility={handleUpdateCheckedMobility}
-          />
-        )}
-        {activeTab === "history" && (
-          <History
-            workoutLogs={workoutLogs}
-            slotOverrides={slotOverrides}
-          />
-        )}
-        {activeTab === "cardio" && (
-          <CardioLog
-            cardioLogs={cardioLogs}
-            onSaveCardio={handleSaveCardio}
-            currentWeek={week}
-            recoveryLogs={recoveryLogs}
-          />
-        )}
-        {activeTab === "recovery" && (
-          <RecoveryLog
-            recoveryLogs={recoveryLogs}
-            onAddLog={handleAddLog}
-          />
-        )}
-        {activeTab === "settings" && (
-          <Settings
-            plateInventory={plateInventory}
-            onUpdatePlateInventory={handleUpdatePlateInventory}
-            settings={settings}
-            onUpdateSettings={handleUpdateSettings}
-            volumeLandmarks={volumeLandmarks}
-            onUpdateVolumeLandmarks={handleUpdateVolumeLandmarks}
-            onExportData={handleExportData}
-            onImportData={handleImportData}
-            firebaseConfig={firebaseConfig}
-            cloudSyncEnabled={cloudSyncEnabled}
-            setCloudSyncEnabled={setCloudSyncEnabled}
-            firebaseUser={firebaseUser}
-            onLogin={handleCloudLogin}
-            onRegister={handleCloudRegister}
-            onLogout={handleCloudLogout}
-            onResetPassword={handleCloudResetPassword}
-          />
-        )}
-      </main>
+          {/* ACTIVE CONTENT VIEW */}
+          <main className="app-main">
+            {activeTab === "dashboard" && (
+              <Dashboard
+                workoutLogs={workoutLogs}
+                recoveryLogs={recoveryLogs}
+                slotOverrides={slotOverrides}
+                currentWeek={week}
+                currentMeso={meso}
+                volumeLandmarks={volumeLandmarks}
+              />
+            )}
+            {activeTab === "workout" && (
+              <WorkoutLogger
+                meso={meso}
+                setMeso={setMeso}
+                week={week}
+                setWeek={setWeek}
+                day={day}
+                setDay={setDay}
+                workoutLogs={workoutLogs}
+                recoveryLogs={recoveryLogs}
+                slotOverrides={slotOverrides}
+                onSaveSet={handleSaveSet}
+                onUpdateSlotOverride={handleUpdateSlotOverride}
+                triggerRestTimer={triggerRestTimer}
+                plateInventory={plateInventory}
+                settings={settings}
+                checkedMobility={checkedMobility}
+                setCheckedMobility={handleUpdateCheckedMobility}
+              />
+            )}
+            {activeTab === "history" && (
+              <History
+                workoutLogs={workoutLogs}
+                slotOverrides={slotOverrides}
+              />
+            )}
+            {activeTab === "cardio" && (
+              <CardioLog
+                cardioLogs={cardioLogs}
+                onSaveCardio={handleSaveCardio}
+                currentWeek={week}
+                recoveryLogs={recoveryLogs}
+              />
+            )}
+            {activeTab === "recovery" && (
+              <RecoveryLog
+                recoveryLogs={recoveryLogs}
+                onAddLog={handleAddLog}
+              />
+            )}
+            {activeTab === "settings" && (
+              <Settings
+                plateInventory={plateInventory}
+                onUpdatePlateInventory={handleUpdatePlateInventory}
+                settings={settings}
+                onUpdateSettings={handleUpdateSettings}
+                volumeLandmarks={volumeLandmarks}
+                onUpdateVolumeLandmarks={handleUpdateVolumeLandmarks}
+                onExportData={handleExportData}
+                onImportData={handleImportData}
+                firebaseConfig={firebaseConfig}
+                cloudSyncEnabled={cloudSyncEnabled}
+                setCloudSyncEnabled={setCloudSyncEnabled}
+                firebaseUser={firebaseUser}
+                onLogin={handleCloudLogin}
+                onRegister={handleCloudRegister}
+                onLogout={handleCloudLogout}
+                onResetPassword={handleCloudResetPassword}
+              />
+            )}
+          </main>
 
-      {/* PERSISTENT FLOATING REST TIMER */}
-      <RestTimer
-        timerSeconds={timerSeconds}
-        timerMax={timerMax}
-        timerExercise={timerExercise}
-        timerActive={timerActive}
-        setTimerActive={setTimerActive}
-        setTimerSeconds={setTimerSeconds}
-        dismissTimer={dismissTimer}
-      />
+          {/* PERSISTENT FLOATING REST TIMER */}
+          <RestTimer
+            timerSeconds={timerSeconds}
+            timerMax={timerMax}
+            timerExercise={timerExercise}
+            timerActive={timerActive}
+            setTimerActive={setTimerActive}
+            setTimerSeconds={setTimerSeconds}
+            dismissTimer={dismissTimer}
+          />
+        </>
+      )}
     </div>
   );
 }
