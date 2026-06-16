@@ -1,0 +1,17 @@
+{
+  "name": "Home Gym Hypertrophy",
+  "short_name": "HGH Tracker",
+  "description": "Premium Autoregulated Home Gym Hypertrophy Tracker",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#090c15",
+  "theme_color": "#00f2fe",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
