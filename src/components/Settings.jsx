@@ -15,7 +15,8 @@ export default function Settings({
   firebaseUser,
   onLogin,
   onRegister,
-  onLogout
+  onLogout,
+  onResetPassword
 }) {
   const [importStatus, setImportStatus] = useState("");
   
@@ -128,6 +129,21 @@ export default function Settings({
       setAuthSuccess("Signed out successfully.");
     } catch (err) {
       setAuthError(err.message || "Sign out failed.");
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    setAuthError("");
+    setAuthSuccess("");
+    if (!syncEmail) {
+      setAuthError("Please enter your email address first in the field above.");
+      return;
+    }
+    try {
+      await onResetPassword(syncEmail);
+      setAuthSuccess("Password reset email sent! Please check your inbox.");
+    } catch (err) {
+      setAuthError(err.message || "Failed to send password reset email.");
     }
   };
 
@@ -440,6 +456,25 @@ export default function Settings({
                           onClick={handleRegisterSubmit}
                         >
                           📝 Create Account
+                        </button>
+                      </div>
+
+                      <div style={{ marginTop: "1rem", textAlign: "center" }}>
+                        <button
+                          type="button"
+                          className="btn-link"
+                          style={{
+                            background: "none",
+                            border: "none",
+                            color: "var(--color-primary)",
+                            fontSize: "0.8rem",
+                            textDecoration: "underline",
+                            cursor: "pointer",
+                            padding: 0
+                          }}
+                          onClick={handleForgotPassword}
+                        >
+                          Forgot Password?
                         </button>
                       </div>
                     </form>

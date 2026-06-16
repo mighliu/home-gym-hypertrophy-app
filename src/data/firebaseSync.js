@@ -4,7 +4,8 @@ import {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   signOut, 
-  onAuthStateChanged 
+  onAuthStateChanged,
+  sendPasswordResetEmail
 } from "firebase/auth";
 import { 
   getFirestore, 
@@ -67,6 +68,11 @@ export async function logoutUser() {
   }
   if (!firebaseAuth) return;
   return signOut(firebaseAuth);
+}
+
+export async function resetPassword(email) {
+  if (!firebaseAuth) throw new Error("Firebase not initialized");
+  return sendPasswordResetEmail(firebaseAuth, email);
 }
 
 export function subscribeToCloudData(uid, onDataReceived) {

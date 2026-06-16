@@ -14,7 +14,8 @@ import {
   subscribeToCloudData, 
   saveToCloud, 
   unsubscribeFromCloud,
-  onAuthChange
+  onAuthChange,
+  resetPassword
 } from "./data/firebaseSync";
 
 function playChime() {
@@ -212,6 +213,10 @@ export default function App() {
 
   const handleCloudLogout = async () => {
     return logoutUser();
+  };
+
+  const handleCloudResetPassword = async (email) => {
+    return resetPassword(email);
   };
 
   // Firebase Auth & Firestore Subscription hook
@@ -716,6 +721,7 @@ export default function App() {
             onLogin={handleCloudLogin}
             onRegister={handleCloudRegister}
             onLogout={handleCloudLogout}
+            onResetPassword={handleCloudResetPassword}
           />
         )}
       </main>
