@@ -132,12 +132,23 @@ export default function App() {
   // Firebase Sync Configuration & User States
   const [firebaseConfig, setFirebaseConfig] = useState(() => {
     const data = localStorage.getItem("hgh_firebase_config");
-    return data ? JSON.parse(data) : { apiKey: "", authDomain: "", projectId: "", appId: "" };
+    if (data) {
+      return JSON.parse(data);
+    }
+    return {
+      apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "",
+      authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "",
+      projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "",
+      appId: import.meta.env.VITE_FIREBASE_APP_ID || ""
+    };
   });
 
   const [cloudSyncEnabled, setCloudSyncEnabled] = useState(() => {
     const data = localStorage.getItem("hgh_cloud_sync_enabled");
-    return data === "true";
+    if (data !== null) {
+      return data === "true";
+    }
+    return !!(import.meta.env.VITE_FIREBASE_API_KEY && import.meta.env.VITE_FIREBASE_PROJECT_ID);
   });
 
   const [firebaseUser, setFirebaseUser] = useState(null);
