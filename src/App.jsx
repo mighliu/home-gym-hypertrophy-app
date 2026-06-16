@@ -133,7 +133,14 @@ export default function App() {
   const [firebaseConfig, setFirebaseConfig] = useState(() => {
     const data = localStorage.getItem("hgh_firebase_config");
     if (data) {
-      return JSON.parse(data);
+      try {
+        const parsed = JSON.parse(data);
+        if (parsed && parsed.apiKey && parsed.projectId && parsed.appId) {
+          return parsed;
+        }
+      } catch (e) {
+        console.warn("Failed to parse firebase config from localStorage:", e);
+      }
     }
     return {
       apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "",
