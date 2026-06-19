@@ -23,16 +23,16 @@ export const syncSmartwatchData = async () => {
       };
     }
 
-    // 2. Request authorization
+    // 2. Request authorization with correct camelCase types
     await Health.requestAuthorization({
-      read: ["sleep", "weight", "resting_heart_rate", "hrv"],
+      read: ["sleep", "weight", "restingHeartRate", "heartRateVariability"],
     });
 
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const now = new Date().toISOString();
 
     // 3. Read sleep data for the last 24 hours
-    const sleepResult = await Health.querySamples({
+    const sleepResult = await Health.readSamples({
       startDate: oneDayAgo,
       endDate: now,
       dataType: "sleep"
@@ -52,11 +52,6 @@ export const syncSmartwatchData = async () => {
     const sleepHours = totalSleepMinutes > 0 ? totalSleepMinutes / 60 : null;
 
     // Map sleep hours to our 1-5 rating pill scale:
-    // 1: Terrible (<4h)
-    // 2: Poor (4-5h)
-    // 3: Adequate (6-7h)
-    // 4: Good (7-8h)
-    // 5: Excellent (8h+)
     let sleepRating = 3; // default average
     if (sleepHours !== null) {
       if (sleepHours >= 8) sleepRating = 5;
@@ -68,7 +63,7 @@ export const syncSmartwatchData = async () => {
 
     // 4. Read body weight data (last 30 days)
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-    const weightResult = await Health.querySamples({
+    const weightResult = await Health.readSamples({
       startDate: thirtyDaysAgo,
       endDate: now,
       dataType: "weight"
@@ -88,10 +83,10 @@ export const syncSmartwatchData = async () => {
     }
 
     // 5. Read Resting Heart Rate (RHR)
-    const rhrResult = await Health.querySamples({
+    const rhrResult = await Health.readSamples({
       startDate: oneDayAgo,
       endDate: now,
-      dataType: "resting_heart_rate"
+      dataType: "restingHeartRate"
     });
 
     let latestRHR = null;
@@ -103,10 +98,10 @@ export const syncSmartwatchData = async () => {
     }
 
     // 6. Read HRV
-    const hrvResult = await Health.querySamples({
+    const hrvResult = await Health.readSamples({
       startDate: oneDayAgo,
       endDate: now,
-      dataType: "hrv"
+      dataType: "heartRateVariability"
     });
 
     let latestHRV = null;
