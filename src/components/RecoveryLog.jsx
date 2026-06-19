@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { isNativeMobile, syncSmartwatchData } from "../data/smartwatchSync";
 
 export default function RecoveryLog({
   recoveryLogs,
@@ -10,6 +11,24 @@ export default function RecoveryLog({
   const [weight, setWeight] = useState("");
   const [notes, setNotes] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [syncing, setSyncing] = useState(false);
+  const [syncError, setSyncError] = useState("");
+
+  const handleWatchSync = async () => {
+    setSyncing(true);
+    setSyncError("");
+    const result = await syncSmartwatchData();
+    if (result.success) {
+      if (result.sleepRating) setSleep(result.sleepRating);
+      if (result.weight) setWeight(result.weight);
+      setSuccessMessage(result.message);
+      setTimeout(() => setSuccessMessage(""), 3000);
+    } else {
+      setSyncError(result.message);
+      setTimeout(() => setSyncError(""), 5000);
+    }
+    setSyncing(false);
+  };
 
   const todayStr = new Date().toLocaleDateString("en-US", {
     weekday: "long",
@@ -91,6 +110,45 @@ export default function RecoveryLog({
           </div>
 
           {successMessage && <div className="success-banner">{successMessage}</div>}
+
+          <div style={{ marginBottom: "1rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            <button
+              type="button"
+              className="btn"
+              onClick={handleWatchSync}
+              disabled={syncing}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "0.5rem",
+                background: "rgba(0, 242, 254, 0.08)",
+                border: "1px solid rgba(0, 242, 254, 0.25)",
+                color: "var(--color-primary)",
+                padding: "0.5rem 1rem",
+                borderRadius: "8px",
+                fontWeight: "600",
+                fontSize: "0.85rem",
+                width: "100%",
+                cursor: "pointer",
+                transition: "all 0.2s"
+              }}
+            >
+              {syncing ? "⏳ Fetching watch data..." : "⌚ Sync with Smartwatch"}
+            </button>
+            
+            {!isNativeMobile() && (
+              <span style={{ fontSize: "0.7rem", color: "var(--color-text-muted)", textAlign: "center", display: "block" }}>
+                ℹ️ Smartwatch health sync requires the native Android/iOS app container.
+              </span>
+            )}
+            
+            {syncError && (
+              <span style={{ fontSize: "0.75rem", color: "var(--color-error)", textAlign: "center", display: "block", background: "rgba(255, 56, 96, 0.08)", padding: "0.4rem", borderRadius: "4px", border: "1px solid rgba(255, 56, 96, 0.2)" }}>
+                ⚠️ {syncError}
+              </span>
+            )}
+          </div>
 
           {renderRatingSelectors("Sleep Quality", sleep, setSleep, "sleep", [
             "Terrible (<4h)",

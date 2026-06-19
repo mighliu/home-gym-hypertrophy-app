@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Home Gym Hypertrophy</string>
+    <string name="title_activity_main">Home Gym Hypertrophy</string>
+    <string name="package_name">com.miguel.homegymhypertrophy</string>
+    <string name="custom_url_scheme">com.miguel.homegymhypertrophy</string>
+</resources>
