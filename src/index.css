@@ -295,6 +295,7 @@ a:hover {
 
 .nav-tab-icon {
   font-size: 1.2rem;
+  text-shadow: none !important;
 }
 
 /* Card Component */
