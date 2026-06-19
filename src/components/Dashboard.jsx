@@ -1073,9 +1073,13 @@ export default function Dashboard({
         }
         .table-card-dash {
           padding: 1.25rem !important;
+          min-width: 0;
+          overflow: hidden;
         }
         .chart-card-dash {
           padding: 1.25rem !important;
+          min-width: 0;
+          overflow: hidden;
         }
         .bold-text {
           font-weight: 600;
@@ -1129,11 +1133,14 @@ export default function Dashboard({
           align-items: center;
           gap: 1rem;
           width: 100%;
+          max-width: 100%;
+          overflow: hidden;
         }
         .svg-chart {
           width: 100%;
+          max-width: 100%;
           max-height: 220px;
-          overflow: visible;
+          overflow: hidden;
         }
         .chart-path {
           animation: drawLine 1s ease-out forwards;

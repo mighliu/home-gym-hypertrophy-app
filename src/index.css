@@ -237,7 +237,7 @@ a:hover {
   backdrop-filter: blur(10px);
   border-top: 1px solid var(--border-color);
   padding: 0.5rem 1rem;
-  z-index: 100;
+  z-index: 9999;
   justify-content: space-around;
   transform: translate3d(0, 0, 0);
   will-change: transform;
