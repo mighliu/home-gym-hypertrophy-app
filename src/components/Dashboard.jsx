@@ -247,15 +247,25 @@ export default function Dashboard({
   const getRollingAverages = () => {
     const sorted = [...recoveryLogs].sort((a, b) => b.timestamp - a.timestamp);
     const last7 = sorted.slice(0, 7);
-    if (last7.length === 0) return { sleep: 0, fatigue: 0, count: 0 };
+    if (last7.length === 0) return { sleep: 0, fatigue: 0, rhr: 0, hrv: 0, count: 0, rhrCount: 0, hrvCount: 0 };
     
     const sleepSum = last7.reduce((acc, log) => acc + log.sleep, 0);
     const fatigueSum = last7.reduce((acc, log) => acc + log.fatigue, 0);
     
+    const rhrLogs = last7.filter(log => log.rhr !== undefined && log.rhr !== null);
+    const hrvLogs = last7.filter(log => log.hrv !== undefined && log.hrv !== null);
+    
+    const rhrSum = rhrLogs.reduce((acc, log) => acc + log.rhr, 0);
+    const hrvSum = hrvLogs.reduce((acc, log) => acc + log.hrv, 0);
+    
     return {
       sleep: sleepSum / last7.length,
       fatigue: fatigueSum / last7.length,
-      count: last7.length
+      rhr: rhrLogs.length > 0 ? rhrSum / rhrLogs.length : 0,
+      hrv: hrvLogs.length > 0 ? hrvSum / hrvLogs.length : 0,
+      count: last7.length,
+      rhrCount: rhrLogs.length,
+      hrvCount: hrvLogs.length
     };
   };
 
@@ -269,25 +279,44 @@ export default function Dashboard({
       };
     }
 
-    const { sleep, fatigue } = rolling;
-    if (fatigue >= 4.0 && sleep <= 2.0) {
+    const { sleep, fatigue, rhr, hrv, rhrCount, hrvCount } = rolling;
+    
+    const hasRhrStrain = rhrCount >= 2 && rhr > 75;
+    const hasHrvStrain = hrvCount >= 2 && hrv < 45;
+    const hasSevereVitalsStrain = hasRhrStrain && hasHrvStrain;
+    const hasAnyVitalsStrain = hasRhrStrain || hasHrvStrain;
+
+    if (fatigue >= 4.0 && (sleep <= 2.0 || hasSevereVitalsStrain)) {
       return {
-        text: "🚨 CRITICAL WARNING: High fatigue and poor sleep detected. We recommend an early Deload or cutting training volume by 50% immediately to prevent injury and overreaching.",
+        text: `🚨 CRITICAL CNS FATIGUE: High subjective fatigue (${fatigue.toFixed(1)}/5), poor sleep, and critical autonomic strain detected (RHR: ${rhrCount > 0 ? Math.round(rhr) + " bpm" : "N/A"}, HRV: ${hrvCount > 0 ? Math.round(hrv) + " ms" : "N/A"}). We recommend an early Deload or cutting training volume by 50% immediately.`,
         status: "critical"
       };
-    } else if (fatigue >= 4.0) {
+    } else if (fatigue >= 4.0 || hasSevereVitalsStrain) {
+      let vitalsWarning = hasSevereVitalsStrain ? " with severe vitals strain (RHR elevated & HRV depressed)" : "";
       return {
-        text: "⚠️ WARNING: High fatigue detected. Ensure you are taking your rest days seriously. Consider reducing intensity if this persists for 3+ days.",
+        text: `⚠️ CNS FATIGUE WARNING: High autonomic/systemic strain detected${vitalsWarning} (Fatigue: ${fatigue.toFixed(1)}/5, RHR: ${rhrCount > 0 ? Math.round(rhr) + " bpm" : "—"}, HRV: ${hrvCount > 0 ? Math.round(hrv) + " ms" : "—"}). Ensure you are taking rest seriously and consider scaling back set volume on your compound lifts.`,
         status: "warning"
       };
-    } else if (sleep <= 2.0) {
+    } else if (sleep <= 2.0 || hasAnyVitalsStrain) {
+      let reason = sleep <= 2.0 ? "critically low sleep quality" : "";
+      if (hasRhrStrain && hasHrvStrain) {
+        reason += (reason ? " and " : "") + "severe autonomic strain (elevated resting heart rate & depressed HRV)";
+      } else if (hasRhrStrain) {
+        reason += (reason ? " and " : "") + "elevated resting heart rate (>75 bpm)";
+      } else if (hasHrvStrain) {
+        reason += (reason ? " and " : "") + "depressed HRV (<45 ms)";
+      }
       return {
-        text: "😴 RECOVERY WARNING: Sleep quality is critically low. Focus on sleep hygiene, keep calorie intake high, and monitor your session recovery closely.",
+        text: `😴 AUTONOMIC RECOVERY WARNING: Mild autonomic strain detected (${reason}). Sleep: ${sleep.toFixed(1)}/5, RHR: ${rhrCount > 0 ? Math.round(rhr) + " bpm" : "—"}, HRV: ${hrvCount > 0 ? Math.round(hrv) + " ms" : "—"}. Focus on sleep hygiene, hydration, and nutrition.`,
         status: "warning"
       };
     } else {
+      let vitalsStatus = "";
+      if (rhrCount >= 2 && hrvCount >= 2) {
+        vitalsStatus = ` (RHR: ${Math.round(rhr)} bpm, HRV: ${Math.round(hrv)} ms are in optimal zones)`;
+      }
       return {
-        text: "✅ GREEN LIGHT: Fatigue and sleep are in optimal ranges. You are cleared to train with high intensity and progress according to your RIR targets!",
+        text: `✅ GREEN LIGHT: Fatigue, sleep, and objective vitals are in optimal ranges${vitalsStatus}. You are cleared to train with high intensity and progress according to your RIR targets!`,
         status: "good"
       };
     }
@@ -704,7 +733,7 @@ export default function Dashboard({
   return (
     <div className="dashboard-tab animated">
       {/* HEADER CARDS: ROLLING AVERAGES & DYNAMIC COACHING */}
-      <div className="grid-3">
+      <div className={rolling.rhrCount > 0 || rolling.hrvCount > 0 ? "vitals-dashboard-header has-vitals" : "vitals-dashboard-header no-vitals"}>
         <div className="card metric-mini-card">
           <span className="mini-label">Fatigue (7-Day Roll)</span>
           <span className="mini-value">{rolling.count > 0 ? rolling.fatigue.toFixed(1) : "—"} <span className="mini-slash">/ 5</span></span>
@@ -715,7 +744,27 @@ export default function Dashboard({
           <span className="mini-value">{rolling.count > 0 ? rolling.sleep.toFixed(1) : "—"} <span className="mini-slash">/ 5</span></span>
           <span className="mini-desc">Target: &gt; 3.0 for nervous recovery</span>
         </div>
-        <div className={`card advice-card advice-${advice.status}`}>
+        
+        {(rolling.rhrCount > 0 || rolling.hrvCount > 0) && (
+          <>
+            <div className="card metric-mini-card">
+              <span className="mini-label">RHR (7-Day Roll)</span>
+              <span className="mini-value">{rolling.rhrCount > 0 ? Math.round(rolling.rhr) : "—"} <span className="mini-slash">bpm</span></span>
+              <span className="mini-desc" style={{ color: rolling.rhr > 75 ? "var(--color-warning)" : "var(--color-secondary)" }}>
+                {rolling.rhr > 75 ? "⚠️ Elevated strain" : "✅ Optimal autonomic state"}
+              </span>
+            </div>
+            <div className="card metric-mini-card">
+              <span className="mini-label">HRV (7-Day Roll)</span>
+              <span className="mini-value">{rolling.hrvCount > 0 ? Math.round(rolling.hrv) : "—"} <span className="mini-slash">ms</span></span>
+              <span className="mini-desc" style={{ color: rolling.hrv < 45 ? "var(--color-warning)" : "var(--color-secondary)" }}>
+                {rolling.hrv < 45 ? "⚠️ Depressed response" : "✅ Good nervous adaptation"}
+              </span>
+            </div>
+          </>
+        )}
+        
+        <div className={`card advice-card advice-${advice.status} ${rolling.rhrCount > 0 || rolling.hrvCount > 0 ? "advice-card-full" : ""}`}>
           <span className="mini-label">Recovery Coach Advice</span>
           <p className="advice-text">{advice.text}</p>
         </div>
@@ -944,6 +993,28 @@ export default function Dashboard({
       </div>
 
       <style dangerouslySetInnerHTML={{ __html: `
+        .vitals-dashboard-header {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 1.5rem;
+          margin-bottom: 1.5rem;
+        }
+        @media (min-width: 768px) {
+          .vitals-dashboard-header {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+        @media (min-width: 1024px) {
+          .vitals-dashboard-header.no-vitals {
+            grid-template-columns: repeat(3, 1fr);
+          }
+          .vitals-dashboard-header.has-vitals {
+            grid-template-columns: repeat(4, 1fr);
+          }
+        }
+        .advice-card-full {
+          grid-column: 1 / -1;
+        }
         .metric-mini-card {
           display: flex;
           flex-direction: column;

@@ -731,6 +731,7 @@ export default function App() {
                 onSaveCardio={handleSaveCardio}
                 currentWeek={week}
                 recoveryLogs={recoveryLogs}
+                workoutLogs={workoutLogs}
               />
             )}
             {activeTab === "recovery" && (

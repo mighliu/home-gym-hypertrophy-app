@@ -10,6 +10,8 @@ export default function RecoveryLog({
   const [soreness, setSoreness] = useState(1);
   const [weight, setWeight] = useState("");
   const [notes, setNotes] = useState("");
+  const [rhr, setRhr] = useState("");
+  const [hrv, setHrv] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState("");
@@ -21,6 +23,8 @@ export default function RecoveryLog({
     if (result.success) {
       if (result.sleepRating) setSleep(result.sleepRating);
       if (result.weight) setWeight(result.weight);
+      if (result.rhr) setRhr(result.rhr);
+      if (result.hrv) setHrv(result.hrv);
       setSuccessMessage(result.message);
       setTimeout(() => setSuccessMessage(""), 3000);
     } else {
@@ -50,11 +54,15 @@ export default function RecoveryLog({
       fatigue: parseInt(fatigue),
       soreness: parseInt(soreness),
       weight: weight ? parseFloat(weight) : null,
-      notes: notes.trim()
+      notes: notes.trim(),
+      rhr: rhr ? parseInt(rhr) : null,
+      hrv: hrv ? parseInt(hrv) : null
     };
 
     onAddLog(newLog);
     setNotes("");
+    setRhr("");
+    setHrv("");
     setSuccessMessage("Log saved successfully!");
     setTimeout(() => setSuccessMessage(""), 3000);
   };
@@ -174,9 +182,9 @@ export default function RecoveryLog({
             "Can't Train"
           ])}
 
-          <div className="form-row">
+          <div className="form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem" }}>
             <div className="form-group">
-              <label className="form-label">AM Bodyweight (lbs)</label>
+              <label className="form-label">Weight (lbs)</label>
               <input
                 type="number"
                 step="0.1"
@@ -184,6 +192,26 @@ export default function RecoveryLog({
                 className="form-input"
                 value={weight}
                 onChange={(e) => setWeight(e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">RHR (bpm)</label>
+              <input
+                type="number"
+                placeholder="e.g. 60"
+                className="form-input"
+                value={rhr}
+                onChange={(e) => setRhr(e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">HRV (ms)</label>
+              <input
+                type="number"
+                placeholder="e.g. 65"
+                className="form-input"
+                value={hrv}
+                onChange={(e) => setHrv(e.target.value)}
               />
             </div>
           </div>
@@ -222,6 +250,8 @@ export default function RecoveryLog({
                     <th>Sleep</th>
                     <th>Fatigue</th>
                     <th>Soreness</th>
+                    <th>RHR</th>
+                    <th>HRV</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -244,6 +274,8 @@ export default function RecoveryLog({
                           {log.soreness}
                         </span>
                       </td>
+                      <td>{log.rhr ? `${log.rhr} bpm` : "—"}</td>
+                      <td>{log.hrv ? `${log.hrv} ms` : "—"}</td>
                     </tr>
                   ))}
                 </tbody>
