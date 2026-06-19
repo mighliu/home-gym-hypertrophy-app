@@ -239,6 +239,8 @@ a:hover {
   padding: 0.5rem 1rem;
   z-index: 100;
   justify-content: space-around;
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
 }
 
 @media (min-width: 768px) {
@@ -296,6 +298,8 @@ a:hover {
 .nav-tab-icon {
   font-size: 1.2rem;
   text-shadow: none !important;
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
 }
 
 /* Card Component */
