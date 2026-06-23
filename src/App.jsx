@@ -7,6 +7,7 @@ import CardioLog from "./components/CardioLog";
 import History from "./components/History";
 import Settings from "./components/Settings";
 import AuthScreen from "./components/AuthScreen";
+import Insights from "./components/Insights";
 import { 
   initFirebase, 
   loginUser, 
@@ -18,34 +19,85 @@ import {
   onAuthChange,
   resetPassword
 } from "./data/firebaseSync";
+import { calculateReadiness } from "./data/analytics";
 
-function playChime() {
+function playTimerAlert(soundType = "chime", enableVibration = true) {
+  if (enableVibration) {
+    try {
+      import("@capacitor/haptics").then(({ Haptics }) => {
+        Haptics.vibrate({ duration: 500 }).catch(() => {
+          if (typeof navigator !== "undefined" && navigator.vibrate) {
+            navigator.vibrate(500);
+          }
+        });
+      }).catch(() => {
+        if (typeof navigator !== "undefined" && navigator.vibrate) {
+          navigator.vibrate(500);
+        }
+      });
+    } catch {
+      if (typeof navigator !== "undefined" && navigator.vibrate) {
+        navigator.vibrate(500);
+      }
+    }
+  }
+
+  if (soundType === "silent") return;
+
   try {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     if (!AudioContext) return;
     const ctx = new AudioContext();
-    
-    const playTone = (freq, start, duration) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(freq, ctx.currentTime + start);
-      
-      gain.gain.setValueAtTime(0.15, ctx.currentTime + start);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + duration);
-      
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      
-      osc.start(ctx.currentTime + start);
-      osc.stop(ctx.currentTime + start + duration);
-    };
 
-    playTone(523.25, 0, 0.4);   // C5
-    playTone(659.25, 0.15, 0.5); // E5
+    if (soundType === "chime") {
+      const playTone = (freq, start, duration) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, ctx.currentTime + start);
+        gain.gain.setValueAtTime(0.15, ctx.currentTime + start);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime + start);
+        osc.stop(ctx.currentTime + start + duration);
+      };
+      playTone(523.25, 0, 0.4);   // C5
+      playTone(659.25, 0.15, 0.5); // E5
+    } else if (soundType === "bell") {
+      const now = ctx.currentTime;
+      const freqs = [440, 554.37, 659.25, 880];
+      freqs.forEach((f, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(f, now);
+        gain.gain.setValueAtTime(0.08 / (idx + 1), now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2 - idx * 0.2);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 1.2 - idx * 0.2);
+      });
+    } else if (soundType === "buzzer") {
+      const playBuzz = (start, duration) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(120, ctx.currentTime + start);
+        gain.gain.setValueAtTime(0.1, ctx.currentTime + start);
+        gain.gain.setValueAtTime(0.1, ctx.currentTime + start + duration - 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime + start);
+        osc.stop(ctx.currentTime + start + duration);
+      };
+      playBuzz(0, 0.3);
+      playBuzz(0.4, 0.3);
+    }
   } catch (e) {
-    console.warn("Audio Context failed to play chime: ", e);
+    console.warn("Audio Context failed to play alert: ", e);
   }
 }
 
@@ -119,7 +171,7 @@ export default function App() {
 
   const [settings, setSettings] = useState(() => {
     const data = localStorage.getItem("hgh_settings");
-    return data ? JSON.parse(data) : {
+    const defaults = {
       bbWeight: 45,
       ezWeight: 14,
       dbWeight: 12,
@@ -127,8 +179,21 @@ export default function App() {
       rackBench: "4",
       rackIncline: "8",
       rackSafety: "5",
-      theme: "cyber-neon"
+      theme: "cyber-neon",
+      timerSound: "chime",
+      timerVibration: true,
+      reminderDays: [],
+      reminderTime: "16:00"
     };
+    if (data) {
+      try {
+        const parsed = JSON.parse(data);
+        return { ...defaults, ...parsed };
+      } catch (e) {
+        console.warn("Failed to parse settings:", e);
+      }
+    }
+    return defaults;
   });
 
   // Firebase Sync Configuration & User States
@@ -188,6 +253,41 @@ export default function App() {
   const [timerMax, setTimerMax] = useState(0);
   const [timerExercise, setTimerExercise] = useState("");
   const [timerActive, setTimerActive] = useState(false);
+
+  // Quick-Log Widget State
+  const [showQuickLog, setShowQuickLog] = useState(false);
+  const [quickSleep, setQuickSleep] = useState(3);
+  const [quickFatigue, setQuickFatigue] = useState(3);
+  const [quickSoreness, setQuickSoreness] = useState(1);
+  const [quickWeight, setQuickWeight] = useState("");
+
+  const handleQuickLogSubmit = (e) => {
+    if (e) e.preventDefault();
+    const dateObj = new Date();
+    const key = dateObj.toISOString().split("T")[0]; // YYYY-MM-DD
+    
+    const newLog = {
+      date: key,
+      timestamp: dateObj.getTime(),
+      displayDate: dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      sleep: parseInt(quickSleep, 10),
+      fatigue: parseInt(quickFatigue, 10),
+      soreness: parseInt(quickSoreness, 10),
+      weight: quickWeight ? parseFloat(quickWeight) : null,
+      notes: "Quick check-in via widget",
+      rhr: null,
+      hrv: null
+    };
+
+    handleAddLog(newLog);
+    setShowQuickLog(false);
+    
+    // Reset defaults
+    setQuickSleep(3);
+    setQuickFatigue(3);
+    setQuickSoreness(1);
+    setQuickWeight("");
+  };
 
   // Sync refs to prevent recursive update loops
   const lastLocalChangeRef = useRef(0);
@@ -428,10 +528,116 @@ export default function App() {
     } else if (timerSeconds === 0 && timerActive) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setTimerActive(false);
-      playChime();
+      playTimerAlert(settings?.timerSound, settings?.timerVibration);
     }
     return () => clearInterval(interval);
-  }, [timerActive, timerSeconds]);
+  }, [timerActive, timerSeconds, settings?.timerSound, settings?.timerVibration]);
+
+  // Workout reminders scheduling
+  useEffect(() => {
+    const syncRemindersResult = async () => {
+      try {
+        const { LocalNotifications } = await import("@capacitor/local-notifications");
+        
+        // request permissions
+        const permission = await LocalNotifications.checkPermissions();
+        if (permission.display !== "granted") {
+          await LocalNotifications.requestPermissions();
+        }
+
+        // Clear existing
+        const pending = await LocalNotifications.getPending();
+        if (pending.notifications && pending.notifications.length > 0) {
+          await LocalNotifications.cancel(pending);
+        }
+
+        const reminderDays = settings.reminderDays || [];
+        if (reminderDays.length === 0) {
+          console.log("No reminder days set. Cleared all reminders.");
+          return;
+        }
+
+        const [hourStr, minStr] = (settings.reminderTime || "16:00").split(":");
+        const hour = parseInt(hourStr, 10);
+        const minute = parseInt(minStr, 10);
+
+        const daysMap = { "Sun": 1, "Mon": 2, "Tue": 3, "Wed": 4, "Thu": 5, "Fri": 6, "Sat": 7 };
+        const now = new Date();
+        const todayNum = now.getDay() + 1; // 1=Sun, 2=Mon...
+        const todayDateStr = now.toISOString().split("T")[0];
+
+        // Check if workout is logged today
+        let workoutLoggedToday = false;
+        Object.keys(workoutLogs || {}).forEach((key) => {
+          const log = workoutLogs[key];
+          if (log && log.completed && log.date === todayDateStr) {
+            workoutLoggedToday = true;
+          }
+        });
+        Object.values(sessionLogs || {}).forEach((log) => {
+          if (log.completedAt) {
+            const d = new Date(log.completedAt).toISOString().split("T")[0];
+            if (d === todayDateStr) {
+              workoutLoggedToday = true;
+            }
+          }
+        });
+
+        // Check today's readiness
+        const todayRecoveryLog = recoveryLogs.find((l) => l.date === todayDateStr);
+        let lowReadiness = false;
+        if (todayRecoveryLog) {
+          const { score } = calculateReadiness(todayRecoveryLog, recoveryLogs);
+          if (score < 30) {
+            lowReadiness = true;
+          }
+        }
+
+        const list = [];
+        reminderDays.forEach((dayName, idx) => {
+          const weekdayNum = daysMap[dayName];
+          if (!weekdayNum) return;
+
+          let title = "Time to Train! 🏋️";
+          let body = "Consistency is key. Tap to open your workout log.";
+
+          if (weekdayNum === todayNum) {
+            if (workoutLoggedToday) {
+              console.log("Workout already completed today. Skipping today's reminder scheduling.");
+              return;
+            }
+            if (lowReadiness) {
+              title = "Recovery Day Advised 😴";
+              body = "Your readiness score is critically low. Consider a rest/recovery day today.";
+            }
+          }
+
+          list.push({
+            id: 200 + idx,
+            title,
+            body,
+            schedule: {
+              on: {
+                weekday: weekdayNum,
+                hour,
+                minute
+              },
+              repeats: true
+            }
+          });
+        });
+
+        if (list.length > 0) {
+          await LocalNotifications.schedule({ notifications: list });
+          console.log(`Successfully scheduled ${list.length} workout reminders.`);
+        }
+      } catch (err) {
+        console.log("Capacitor local notifications not available on web, skipping notification scheduling:", err);
+      }
+    };
+
+    syncRemindersResult();
+  }, [settings?.reminderDays, settings?.reminderTime, workoutLogs, recoveryLogs, sessionLogs]);
 
   // Global Actions
   const handleSaveSet = (logKey, setData) => {
@@ -649,6 +855,13 @@ export default function App() {
               <span>Dashboard</span>
             </button>
             <button
+              className={`nav-tab ${activeTab === "insights" ? "active" : ""}`}
+              onClick={() => setActiveTab("insights")}
+            >
+              <span className="nav-tab-icon">📈</span>
+              <span>Insights</span>
+            </button>
+            <button
               className={`nav-tab ${activeTab === "workout" ? "active" : ""}`}
               onClick={() => setActiveTab("workout")}
             >
@@ -691,11 +904,22 @@ export default function App() {
               <Dashboard
                 workoutLogs={workoutLogs}
                 recoveryLogs={recoveryLogs}
+                cardioLogs={cardioLogs}
                 slotOverrides={slotOverrides}
                 currentWeek={week}
                 currentMeso={meso}
                 volumeLandmarks={volumeLandmarks}
                 sessionLogs={sessionLogs}
+              />
+            )}
+            {activeTab === "insights" && (
+              <Insights
+                workoutLogs={workoutLogs}
+                recoveryLogs={recoveryLogs}
+                cardioLogs={cardioLogs}
+                sessionLogs={sessionLogs}
+                currentWeek={week}
+                currentMeso={meso}
               />
             )}
             {activeTab === "workout" && (
@@ -723,6 +947,7 @@ export default function App() {
               <History
                 workoutLogs={workoutLogs}
                 slotOverrides={slotOverrides}
+                sessionLogs={sessionLogs}
               />
             )}
             {activeTab === "cardio" && (
@@ -732,6 +957,7 @@ export default function App() {
                 currentWeek={week}
                 recoveryLogs={recoveryLogs}
                 workoutLogs={workoutLogs}
+                currentMeso={meso}
               />
             )}
             {activeTab === "recovery" && (
@@ -772,6 +998,102 @@ export default function App() {
             setTimerSeconds={setTimerSeconds}
             dismissTimer={dismissTimer}
           />
+
+          {/* FLOATING QUICK-LOG WIDGET */}
+          <button
+            type="button"
+            className="floating-quick-log-btn"
+            onClick={() => setShowQuickLog(true)}
+            title="Quick Daily Readiness Log"
+            style={{
+              bottom: timerActive ? "95px" : "20px"
+            }}
+          >
+            📝
+          </button>
+
+          {showQuickLog && (
+            <div className="modal-overlay" onClick={() => setShowQuickLog(false)}>
+              <div className="modal-card quick-log-modal animated" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header">
+                  <h3>⚡ Quick Daily Check-In</h3>
+                  <button type="button" className="btn-close-modal" onClick={() => setShowQuickLog(false)}>×</button>
+                </div>
+                <form onSubmit={handleQuickLogSubmit}>
+                  <div className="modal-body" style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                    <div className="quick-log-field">
+                      <label className="form-label">Sleep Quality ({quickSleep}/5)</label>
+                      <div className="quick-log-pills-row">
+                        {[1, 2, 3, 4, 5].map((num) => (
+                          <button
+                            key={num}
+                            type="button"
+                            className={`pill-btn ${quickSleep === num ? "active-sleep" : ""}`}
+                            onClick={() => setQuickSleep(num)}
+                          >
+                            {num}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="quick-log-field">
+                      <label className="form-label">Fatigue Level ({quickFatigue}/5)</label>
+                      <div className="quick-log-pills-row">
+                        {[1, 2, 3, 4, 5].map((num) => (
+                          <button
+                            key={num}
+                            type="button"
+                            className={`pill-btn ${quickFatigue === num ? "active-fatigue" : ""}`}
+                            onClick={() => setQuickFatigue(num)}
+                          >
+                            {num}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="quick-log-field">
+                      <label className="form-label">Muscle Soreness ({quickSoreness}/5)</label>
+                      <div className="quick-log-pills-row">
+                        {[1, 2, 3, 4, 5].map((num) => (
+                          <button
+                            key={num}
+                            type="button"
+                            className={`pill-btn ${quickSoreness === num ? "active-soreness" : ""}`}
+                            onClick={() => setQuickSoreness(num)}
+                          >
+                            {num}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label">Weight (lbs)</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        placeholder="e.g. 180.2"
+                        className="form-input"
+                        value={quickWeight}
+                        onChange={(e) => setQuickWeight(e.target.value)}
+                        style={{ background: "var(--bg-input)" }}
+                      />
+                    </div>
+                  </div>
+                  <div className="modal-footer" style={{ display: "flex", gap: "0.5rem" }}>
+                    <button type="button" className="btn btn-secondary btn-full" onClick={() => setShowQuickLog(false)}>
+                      Cancel
+                    </button>
+                    <button type="submit" className="btn btn-primary btn-full">
+                      Save Log
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>

@@ -376,3 +376,180 @@ export const DEFAULT_SPLITS = {
     }
   ]
 };
+
+export const EXERCISE_MUSCLES = {
+  // Incline Push
+  "Incline Barbell Bench Press": { primary: ["Chest"], secondary: ["Shoulders", "Triceps"] },
+  "Incline Dumbbell Bench Press": { primary: ["Chest"], secondary: ["Shoulders", "Triceps"] },
+  "Gymnastic Ring Push-Ups (Feet Elevated)": { primary: ["Chest"], secondary: ["Shoulders", "Triceps", "Abs"] },
+  "Low-Incline Dumbbell Press": { primary: ["Chest"], secondary: ["Shoulders", "Triceps"] },
+
+  // Chest Isolation
+  "Gymnastic Ring Flyes": { primary: ["Chest"], secondary: ["Shoulders"] },
+  "Flat Dumbbell Flyes": { primary: ["Chest"], secondary: ["Shoulders"] },
+  "Dumbbell Floor Flyes": { primary: ["Chest"], secondary: ["Shoulders"] },
+  "Dumbbell Pullover": { primary: ["Chest", "Back"], secondary: ["Triceps"] },
+  "Incline Dumbbell Flyes": { primary: ["Chest"], secondary: ["Shoulders"] },
+
+  // Horizontal Push
+  "Flat Barbell Bench Press": { primary: ["Chest"], secondary: ["Shoulders", "Triceps"] },
+  "Flat Dumbbell Bench Press": { primary: ["Chest"], secondary: ["Shoulders", "Triceps"] },
+  "Weighted Floor Press (Barbell)": { primary: ["Chest"], secondary: ["Triceps", "Shoulders"] },
+  "Weighted Floor Press (Dumbbell)": { primary: ["Chest"], secondary: ["Triceps", "Shoulders"] },
+  "Close-Grip Barbell Bench Press": { primary: ["Triceps", "Chest"], secondary: ["Shoulders"] },
+
+  // Horizontal Pull
+  "Barbell Bent Over Row": { primary: ["Back"], secondary: ["Biceps", "Rear Delts", "Traps"] },
+  "One-Arm Dumbbell Row": { primary: ["Back"], secondary: ["Biceps", "Rear Delts"] },
+  "Gymnastic Ring Inverted Rows": { primary: ["Back"], secondary: ["Biceps", "Rear Delts", "Abs"] },
+  "Barbell Pendlay Row": { primary: ["Back"], secondary: ["Biceps", "Rear Delts"] },
+  "Dumbbell Seal Row (on Incline Bench)": { primary: ["Back"], secondary: ["Biceps", "Rear Delts", "Traps"] },
+  "Chest-Supported Dumbbell Row": { primary: ["Back"], secondary: ["Biceps", "Rear Delts"] },
+
+  // Vertical Pull
+  "Band-Assisted Pull-Ups (on Rack Bar)": { primary: ["Back"], secondary: ["Biceps", "Rear Delts"] },
+  "Band-Assisted Chin-Ups (on Rack Bar)": { primary: ["Back", "Biceps"], secondary: ["Rear Delts"] },
+  "Negative Pull-Ups (Slow Eccentric)": { primary: ["Back"], secondary: ["Biceps", "Rear Delts"] },
+  "Gymnastic Ring Rows (Vertical Lean)": { primary: ["Back"], secondary: ["Biceps", "Rear Delts"] },
+  "Neutral Grip Pull-Ups (on Rack Bar)": { primary: ["Back"], secondary: ["Biceps", "Rear Delts"] },
+
+  // Side Delts
+  "Dumbbell Side Lateral Raise": { primary: ["Shoulders"], secondary: [] },
+  "Band Side Lateral Raise": { primary: ["Shoulders"], secondary: [] },
+  "Dumbbell Leaning Lateral Raise": { primary: ["Shoulders"], secondary: [] },
+  "Dumbbell Lu Raise": { primary: ["Shoulders"], secondary: ["Traps"] },
+
+  // Rear Delts
+  "Band Face Pulls (Anchored to Rack)": { primary: ["Shoulders"], secondary: ["Traps", "Back"] },
+  "Dumbbell Rear Delt Flye": { primary: ["Shoulders"], secondary: [] },
+  "Incline Bench Dumbbell Rear Flye": { primary: ["Shoulders"], secondary: [] },
+  "Band Pull-Aparts": { primary: ["Shoulders"], secondary: ["Traps"] },
+
+  // Quads
+  "High Bar Barbell Squat": { primary: ["Quads"], secondary: ["Glutes", "Hamstrings"] },
+  "Barbell Front Squat": { primary: ["Quads"], secondary: ["Glutes", "Hamstrings"] },
+  "Barbell Box Squats": { primary: ["Quads", "Glutes"], secondary: ["Hamstrings"] },
+  "Barbell Pause Squat": { primary: ["Quads"], secondary: ["Glutes", "Hamstrings"] },
+  "Barbell Pin Squat (from Rack)": { primary: ["Quads"], secondary: ["Glutes", "Hamstrings"] },
+
+  // Quads (Unilateral)
+  "Dumbbell Bulgarian Split Squat": { primary: ["Quads", "Glutes"], secondary: ["Hamstrings"] },
+  "Dumbbell Walking Lunges": { primary: ["Quads", "Glutes"], secondary: ["Hamstrings"] },
+  "Dumbbell Step-Ups (on Bench)": { primary: ["Quads", "Glutes"], secondary: ["Hamstrings"] },
+  "Kettlebell Goblet Squat": { primary: ["Quads"], secondary: ["Glutes", "Hamstrings"] },
+  "Barbell Reverse Lunge": { primary: ["Quads", "Glutes"], secondary: ["Hamstrings"] },
+  "Dumbbell Goblet Squat": { primary: ["Quads"], secondary: ["Glutes", "Hamstrings"] },
+
+  // Glutes/Hams (Hinge)
+  "Conventional Barbell Deadlift": { primary: ["Hamstrings", "Glutes"], secondary: ["Back", "Traps"] },
+  "Barbell Sumo Deadlift": { primary: ["Hamstrings", "Glutes"], secondary: ["Quads", "Back"] },
+  "Barbell Deficit Deadlift": { primary: ["Hamstrings", "Glutes"], secondary: ["Back", "Traps"] },
+
+  // Hamstring Hinge
+  "Barbell Romanian Deadlift": { primary: ["Hamstrings", "Glutes"], secondary: ["Back"] },
+  "Dumbbell Romanian Deadlift": { primary: ["Hamstrings", "Glutes"], secondary: ["Back"] },
+  "Barbell Stiff-Leg Deadlift": { primary: ["Hamstrings"], secondary: ["Glutes", "Back"] },
+  "Barbell Good Mornings": { primary: ["Hamstrings", "Glutes"], secondary: ["Back"] },
+  "Kettlebell Romanian Deadlift": { primary: ["Hamstrings", "Glutes"], secondary: ["Back"] },
+  "Dumbbell Single-Leg RDL": { primary: ["Hamstrings", "Glutes"], secondary: ["Back"] },
+
+  // Hamstring Isolation
+  "Band-Resisted Lying Leg Curls": { primary: ["Hamstrings"], secondary: [] },
+  "Dumbbell Lying Leg Curl (on Bench)": { primary: ["Hamstrings"], secondary: [] },
+  "Nordic Curl (Band-Assisted)": { primary: ["Hamstrings"], secondary: ["Glutes"] },
+  "Slider Leg Curl": { primary: ["Hamstrings"], secondary: ["Glutes"] },
+
+  // Front Delts / OHP
+  "Standing Barbell Overhead Press": { primary: ["Shoulders"], secondary: ["Triceps"] },
+  "Seated Dumbbell Shoulder Press": { primary: ["Shoulders"], secondary: ["Triceps"] },
+  "Dumbbell Arnold Press": { primary: ["Shoulders"], secondary: ["Triceps"] },
+  "Z-Press (Seated Floor BB Press)": { primary: ["Shoulders"], secondary: ["Triceps", "Abs"] },
+
+  // Biceps
+  "EZ Bar Biceps Curl": { primary: ["Biceps"], secondary: ["Forearms"] },
+  "Dumbbell Incline Curl": { primary: ["Biceps"], secondary: ["Forearms"] },
+  "Dumbbell Hammer Curl": { primary: ["Biceps", "Forearms"], secondary: [] },
+  "Barbell Curl": { primary: ["Biceps"], secondary: ["Forearms"] },
+  "Dumbbell Concentration Curl": { primary: ["Biceps"], secondary: [] },
+  "EZ Bar Spider Curl (on Incline Bench)": { primary: ["Biceps"], secondary: [] },
+
+  // Triceps
+  "EZ Bar Overhead Tricep Extension": { primary: ["Triceps"], secondary: [] },
+  "Dumbbell Lying Triceps Extension": { primary: ["Triceps"], secondary: [] },
+  "Gymnastic Ring Triceps Extensions": { primary: ["Triceps"], secondary: ["Abs"] },
+  "Dumbbell OH Triceps Extension": { primary: ["Triceps"], secondary: [] },
+  "Close-Grip Push-Ups": { primary: ["Triceps", "Chest"], secondary: ["Shoulders"] },
+  "Band Triceps Pushdown (Anchored High)": { primary: ["Triceps"], secondary: [] },
+
+  // Calves
+  "Standing Barbell Calf Raise (in Rack)": { primary: ["Calves"], secondary: [] },
+  "Seated Dumbbell Calf Raise": { primary: ["Calves"], secondary: [] },
+  "Bodyweight Single-Leg Calf Raise": { primary: ["Calves"], secondary: [] },
+  "Kettlebell Calf Raise": { primary: ["Calves"], secondary: [] },
+
+  // Abs
+  "Hanging Ring Knee Raises": { primary: ["Abs"], secondary: [] },
+  "Hanging Knee Raise (on Power Rack)": { primary: ["Abs"], secondary: [] },
+  "Weighted Crunch (with Dumbbell)": { primary: ["Abs"], secondary: [] },
+  "Hanging Leg Raise (on Power Rack)": { primary: ["Abs"], secondary: [] },
+  "Ab Wheel Rollout": { primary: ["Abs"], secondary: ["Shoulders"] },
+  "Dumbbell Side Bend": { primary: ["Abs"], secondary: [] },
+
+  // Traps
+  "Barbell Shrug": { primary: ["Traps"], secondary: [] },
+  "Dumbbell Shrug": { primary: ["Traps"], secondary: [] },
+  "Kettlebell Shrug": { primary: ["Traps"], secondary: [] },
+  "Barbell Behind-the-Back Shrug": { primary: ["Traps"], secondary: [] },
+
+  // Forearms
+  "Barbell Wrist Curl": { primary: ["Forearms"], secondary: [] },
+  "Dumbbell Wrist Curl": { primary: ["Forearms"], secondary: [] },
+  "Farmer's Walk (Dumbbells)": { primary: ["Forearms"], secondary: ["Traps"] },
+  "Kettlebell Farmer's Walk": { primary: ["Forearms"], secondary: ["Traps"] }
+};
+
+export const getExerciseMuscleSimilarity = (exName1, exName2) => {
+  if (!exName1 || !exName2) return 0;
+  if (exName1 === exName2) return 100;
+  
+  const m1 = EXERCISE_MUSCLES[exName1] || { primary: [], secondary: [] };
+  const m2 = EXERCISE_MUSCLES[exName2] || { primary: [], secondary: [] };
+
+  const prim1 = new Set(m1.primary || []);
+  const sec1 = new Set(m1.secondary || []);
+  const prim2 = new Set(m2.primary || []);
+  const sec2 = new Set(m2.secondary || []);
+
+  if (prim1.size === 0 && prim2.size === 0) return 0;
+
+  let score = 0;
+  let totalMax = 0;
+
+  prim1.forEach(m => {
+    totalMax += 1.0;
+    if (prim2.has(m)) {
+      score += 1.0;
+    } else if (sec2.has(m)) {
+      score += 0.5;
+    }
+  });
+
+  sec1.forEach(m => {
+    totalMax += 0.5;
+    if (prim2.has(m)) {
+      score += 0.5;
+    } else if (sec2.has(m)) {
+      score += 0.3;
+    }
+  });
+
+  prim2.forEach(m => {
+    if (!prim1.has(m) && !sec1.has(m)) {
+      totalMax += 0.5;
+    }
+  });
+
+  const finalPct = Math.round((score / Math.max(1, totalMax)) * 100);
+  return Math.min(100, Math.max(10, finalPct));
+};
+

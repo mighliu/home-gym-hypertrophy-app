@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { DEFAULT_SPLITS, WEEKS, COMPOUND_PATTERNS, getEquipmentProfile } from "../data/database";
 import SwapModal from "./SwapModal";
+import { calculateReadiness, getSmartWeightSuggestion, detectPRs } from "../data/analytics";
+import { syncWorkoutHeartRate } from "../data/smartwatchSync";
 
 // Helper plate calculator logic
 const calculatePlates = (totalWeight, profile, plateInventory) => {
@@ -175,6 +177,22 @@ export default function WorkoutLogger({
   setCheckedMobility,
   onSaveSession
 }) {
+  // 1. Calculate readiness from latest recovery log
+  const latestLog = recoveryLogs.length > 0 ? [...recoveryLogs].sort((a,b) => b.timestamp - a.timestamp)[0] : null;
+  const { score: readinessScore } = calculateReadiness(latestLog, recoveryLogs);
+
+  // 2. Determine auto-regulation variables
+  const setsReduction = readinessScore < 30 ? 2 : (readinessScore < 50 ? 1 : 0);
+
+  const getExerciseTotalSets = (pattern) => {
+    const isCmp = COMPOUND_PATTERNS.includes(pattern);
+    let totalSets = isCmp ? activeWeekInfo.setsComp : activeWeekInfo.setsIso;
+    if (isCmp && setsReduction > 0) {
+      totalSets = Math.max(1, totalSets - setsReduction);
+    }
+    return totalSets;
+  };
+
   const [activeSwapIdx, setActiveSwapIdx] = useState(null);
   const [activeSwapPattern, setActiveSwapPattern] = useState("");
   const [activeSwapCurrent, setActiveSwapCurrent] = useState("");
@@ -188,6 +206,9 @@ export default function WorkoutLogger({
   // Celebration modal visibility
   const [showCelebration, setShowCelebration] = useState(false);
   const [hasCelebrated, setHasCelebrated] = useState(false);
+
+  // PR Alert animation state
+  const [prAlert, setPrAlert] = useState(null);
 
   // Plate calculator modal state
   const [plateCalcData, setPlateCalcData] = useState(null);
@@ -365,11 +386,34 @@ export default function WorkoutLogger({
       timestamp: currentTimestamp
     });
 
+    // 1. PR DETECTION
+    if (newCompleted) {
+      const prs = detectPRs(workoutLogs, exName, logKey, {
+        weight: finalWeight,
+        reps: finalReps,
+        completed: true,
+        date: currentDate,
+        timestamp: currentTimestamp
+      });
+      if (prs.isWeightPR || prs.isRepPR || prs.isVolumePR) {
+        const types = [];
+        if (prs.isWeightPR) types.push("Weight PR 🏋️");
+        if (prs.isRepPR) types.push("Rep PR 📈");
+        if (prs.isVolumePR) types.push("Volume PR 🔥");
+        setPrAlert({
+          exercise: exName,
+          types: types.join(" & ")
+        });
+        setTimeout(() => {
+          setPrAlert(null);
+        }, 4000);
+      }
+    }
+
     // CHECK IF SESSION COMPLETED AFTER THIS TOGGLE
     const isSessionCompleteNow = dayData.exercises.every((ex, exIdx) => {
       const name = getExName(ex.exercise, exIdx);
-      const isCmp = COMPOUND_PATTERNS.includes(ex.pattern);
-      const totalSets = isCmp ? activeWeekInfo.setsComp : activeWeekInfo.setsIso;
+      const totalSets = getExerciseTotalSets(ex.pattern);
       for (let s = 1; s <= totalSets; s++) {
         if (name === exName && s === setIndex) {
           if (!newCompleted) return false;
@@ -384,8 +428,7 @@ export default function WorkoutLogger({
       let tonnage = 0;
       dayData.exercises.forEach((ex, exIdx) => {
         const name = getExName(ex.exercise, exIdx);
-        const isCmp = COMPOUND_PATTERNS.includes(ex.pattern);
-        const totalSets = isCmp ? activeWeekInfo.setsComp : activeWeekInfo.setsIso;
+        const totalSets = getExerciseTotalSets(ex.pattern);
         
         for (let s = 1; s <= totalSets; s++) {
           let isSetCompleted = false;
@@ -420,13 +463,39 @@ export default function WorkoutLogger({
     if (isSessionCompleteNow && !hasCelebrated) {
       setShowCelebration(true);
       setHasCelebrated(true);
+      
+      const sessionKey = `${meso}-${week}-${day}`;
+      const elapsed = sessionElapsed;
+      const tonnageVal = getTonnageAfterUpdate();
+      
       if (onSaveSession) {
-        onSaveSession(`${meso}-${week}-${day}`, {
-          duration: sessionElapsed,
-          tonnage: getTonnageAfterUpdate(),
+        onSaveSession(sessionKey, {
+          duration: elapsed,
+          tonnage: tonnageVal,
           completedAt: nowTimestamp
         });
       }
+
+      // 2. ACTIVE HEART RATE SYNCING
+      const fetchWorkoutHR = async () => {
+        const startT = parseInt(localStorage.getItem(sessionStartKey), 10) || (Date.now() - elapsed * 1000);
+        const endT = Date.now();
+        const hrData = await syncWorkoutHeartRate(startT, endT);
+        if (hrData.success) {
+          if (onSaveSession) {
+            onSaveSession(sessionKey, {
+              duration: elapsed,
+              tonnage: tonnageVal,
+              completedAt: nowTimestamp,
+              avgHr: hrData.avgHr,
+              peakHr: hrData.peakHr,
+              zones: hrData.zones
+            });
+          }
+        }
+      };
+      fetchWorkoutHR();
+      
     } else if (!isSessionCompleteNow) {
       setHasCelebrated(false);
       setShowCelebration(false);
@@ -658,8 +727,7 @@ export default function WorkoutLogger({
     let tonnage = 0;
     dayData.exercises.forEach((ex, exIdx) => {
       const exName = getExName(ex.exercise, exIdx);
-      const isCmp = COMPOUND_PATTERNS.includes(ex.pattern);
-      const totalSets = isCmp ? activeWeekInfo.setsComp : activeWeekInfo.setsIso;
+      const totalSets = getExerciseTotalSets(ex.pattern);
       
       for (let s = 1; s <= totalSets; s++) {
         const key = `${meso}-${week}-${day}-${exName}-${s}`;
@@ -733,7 +801,7 @@ export default function WorkoutLogger({
     const exName = getExName(ex.exercise, exIdx);
     const profile = getDynamicProfile(exName);
     const isCmp = COMPOUND_PATTERNS.includes(ex.pattern);
-    const totalSets = isCmp ? activeWeekInfo.setsComp : activeWeekInfo.setsIso;
+    const totalSets = getExerciseTotalSets(ex.pattern);
 
     const slotKey = `${meso}-${day}-${exIdx}`;
     const baseWeight = slotOverrides[slotKey]?.baseline !== undefined && slotOverrides[slotKey].baseline !== ""
@@ -765,6 +833,7 @@ export default function WorkoutLogger({
 
     const isFeederCollapsed = collapsedFeeders[exName] !== undefined ? collapsedFeeders[exName] : (exIdx > 0);
     const coaching = getCoachingAdvice(exName, rawSuggested, profile);
+    const smartSuggestion = getSmartWeightSuggestion(workoutLogs, exName, readinessScore);
 
     return (
       <div key={exIdx} className={`card exercise-card ${isInsideSuperset ? "superset-card-nested" : ""}`}>
@@ -944,12 +1013,22 @@ export default function WorkoutLogger({
                     <input
                       type="number"
                       min="0"
-                      placeholder={suggestedLoad !== "—" ? suggestedLoad : ""}
+                      placeholder={smartSuggestion !== null ? String(smartSuggestion) : (suggestedLoad !== "—" ? suggestedLoad : "")}
                       className={`form-input set-input ${isDeviated ? "input-warning" : ""}`}
                       disabled={isSetDone}
                       value={loggedWt}
                       onChange={(e) => handleInputChange(exName, setNum, "weight", e.target.value)}
                     />
+                    {loggedWt === "" && smartSuggestion !== null && !isSetDone && (
+                      <button
+                        type="button"
+                        className="btn-apply-suggestion"
+                        onClick={() => handleInputChange(exName, setNum, "weight", String(smartSuggestion))}
+                        title={`Suggested: ${smartSuggestion} lbs. Click to apply.`}
+                      >
+                        ⚡ Suggest: {smartSuggestion}
+                      </button>
+                    )}
                     {isDeviated && (
                       <span className="dev-warn-indicator" title="Weight deviates >30% from target!">&#9888;</span>
                     )}
@@ -1038,6 +1117,34 @@ export default function WorkoutLogger({
     );
   };
 
+  const renderReadinessBanner = () => {
+    if (!latestLog) return null;
+    
+    if (readinessScore < 30) {
+      return (
+        <div className="readiness-alert-banner critical-warning animated">
+          🚨 <strong>CNS AUTOREGULATION ACTIVE:</strong> Critical recovery strain detected (Readiness: {readinessScore}/100). 
+          We've auto-regulated compound lift volumes (<strong>-2 sets</strong>) and eased intensity (<strong>+1 RIR target buffer</strong>) to prevent overtraining.
+        </div>
+      );
+    } else if (readinessScore < 50) {
+      return (
+        <div className="readiness-alert-banner warning animated">
+          ⚠️ <strong>CNS AUTOREGULATION ACTIVE:</strong> Moderate recovery strain detected (Readiness: {readinessScore}/100). 
+          We've scaled down compound lift volumes (<strong>-1 set</strong>) to manage systemic fatigue.
+        </div>
+      );
+    } else if (readinessScore >= 75) {
+      return (
+        <div className="readiness-alert-banner clear-good animated">
+          🔥 <strong>CNS GREEN LIGHT:</strong> Excellent recovery detected (Readiness: {readinessScore}/100). 
+          Your central nervous system is fully primed. You are cleared to train with high intensity!
+        </div>
+      );
+    }
+    return null;
+  };
+
   const groupedExercises = getGroupedExercises();
 
   return (
@@ -1080,6 +1187,8 @@ export default function WorkoutLogger({
           </span>
         </div>
       </div>
+
+      {renderReadinessBanner()}
 
       {/* DYNAMIC JOINT MOBILITY checklist */}
       <div className={`card mobility-card ${mobilityCollapsed ? "collapsed" : ""}`}>
@@ -1269,6 +1378,17 @@ export default function WorkoutLogger({
           onClose={() => setPlateCalcData(null)}
           plateInventory={plateInventory}
         />
+      )}
+
+      {/* PR ALERT BADGE */}
+      {prAlert && (
+        <div className="pr-alert-badge animated-pr-badge">
+          <span className="pr-alert-icon">🎉</span>
+          <div className="pr-alert-content">
+            <span className="pr-alert-title">NEW PERSONAL RECORD!</span>
+            <span className="pr-alert-details">{prAlert.exercise}: {prAlert.types}</span>
+          </div>
+        </div>
       )}
 
       <style dangerouslySetInnerHTML={{ __html: `

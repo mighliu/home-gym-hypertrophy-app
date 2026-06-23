@@ -134,7 +134,8 @@ export default function CardioLog({
   onSaveCardio,
   currentWeek,
   recoveryLogs = [],
-  workoutLogs = {}
+  workoutLogs = {},
+  currentMeso = 1
 }) {
   const [syncingWeeks, setSyncingWeeks] = useState({});
   const [syncMessages, setSyncMessages] = useState({});
@@ -156,17 +157,22 @@ export default function CardioLog({
   };
 
   const handleInputChange = (week, sessionNum, field, value) => {
-    const key = `w${week}_s${sessionNum}`;
-    const currentData = cardioLogs[key] || {};
-    onSaveCardio(key, {
+    const key = `m${currentMeso}_w${week}_s${sessionNum}`;
+    const currentData = cardioLogs[key] || cardioLogs[`w${week}_s${sessionNum}`] || {};
+    const updateData = {
       ...currentData,
       [field]: value
-    });
+    };
+    if (updateData.completed && !updateData.date) {
+      updateData.timestamp = Date.now();
+      updateData.date = new Date().toISOString().split("T")[0];
+    }
+    onSaveCardio(key, updateData);
   };
 
   const handleToggleComplete = (week, sessionNum, targetDuration) => {
-    const key = `w${week}_s${sessionNum}`;
-    const currentData = cardioLogs[key] || {};
+    const key = `m${currentMeso}_w${week}_s${sessionNum}`;
+    const currentData = cardioLogs[key] || cardioLogs[`w${week}_s${sessionNum}`] || {};
     const newCompleted = !currentData.completed;
 
     // Auto-fill duration if checking complete and duration is empty
@@ -177,13 +183,196 @@ export default function CardioLog({
     onSaveCardio(key, {
       ...currentData,
       duration: finalDuration,
-      completed: newCompleted
+      completed: newCompleted,
+      timestamp: newCompleted ? Date.now() : null,
+      date: newCompleted ? new Date().toISOString().split("T")[0] : null
     });
   };
 
+  const getCardioRecoveryPoints = () => {
+    const points = [];
+    Object.entries(cardioLogs || {}).forEach(([key, log]) => {
+      if (!log || !log.completed) return;
+
+      let mesoNum, weekNum, sessionNum;
+
+      const mMatch = key.match(/^m(\d+)_w(\d+)_s(\d+)$/);
+      const wMatch = key.match(/^w(\d+)_s(\d+)$/);
+
+      if (mMatch) {
+        mesoNum = parseInt(mMatch[1], 10);
+        weekNum = parseInt(mMatch[2], 10);
+        sessionNum = parseInt(mMatch[3], 10);
+      } else if (wMatch) {
+        mesoNum = 1;
+        weekNum = parseInt(wMatch[1], 10);
+        sessionNum = parseInt(wMatch[2], 10);
+      } else {
+        return;
+      }
+
+      if (mesoNum !== currentMeso) return;
+
+      let sessionTime = log.timestamp;
+      let sessionDateStr = log.date;
+
+      if (!sessionTime) {
+        const { startDate } = getWeekDateRange(weekNum, currentWeek, workoutLogs);
+        sessionTime = startDate.getTime() + (sessionNum - 1) * 2 * 24 * 60 * 60 * 1000;
+        sessionDateStr = new Date(sessionTime).toISOString().split("T")[0];
+      }
+
+      const duration = parseFloat(log.duration) || 0;
+      const intensity = parseInt(log.intensity, 10) || 3;
+      const load = duration * intensity;
+
+      const nextDayTime = new Date(sessionDateStr + "T12:00:00").getTime() + 24 * 60 * 60 * 1000;
+      const nextDayStr = new Date(nextDayTime).toISOString().split("T")[0];
+      const nextDayLog = recoveryLogs.find(l => l.date === nextDayStr);
+
+      points.push({
+        label: `W${weekNum} S${sessionNum}`,
+        load,
+        sleep: nextDayLog ? nextDayLog.sleep : null,
+        fatigue: nextDayLog ? nextDayLog.fatigue : null,
+        timestamp: sessionTime
+      });
+    });
+
+    points.sort((a, b) => a.timestamp - b.timestamp);
+    return points.slice(-10);
+  };
+
+  const renderCardioRecoveryChart = () => {
+    const points = getCardioRecoveryPoints();
+    if (points.length === 0) {
+      return (
+        <div className="card chart-card-dash" style={{ marginBottom: "1.5rem" }}>
+          <div className="card-title">Cardio Load vs. Next-Day Recovery Impact</div>
+          <div className="chart-placeholder" style={{ padding: "2.5rem 1rem", textAlign: "center" }}>
+            <p style={{ color: "var(--color-text-muted)", fontSize: "0.85rem", margin: 0 }}>
+              Complete and log cardio sessions to view the recovery correlation trendline.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    const loads = points.map(p => p.load);
+    const maxLoad = Math.max(100, ...loads);
+    
+    const chartWidth = 600;
+    const chartHeight = 220;
+    const paddingLeft = 45;
+    const paddingRight = 45;
+    const paddingTop = 30;
+    const paddingBottom = 40;
+
+    const getX = (idx) => {
+      const drawableWidth = chartWidth - paddingLeft - paddingRight;
+      if (points.length === 1) return paddingLeft + drawableWidth / 2;
+      return paddingLeft + (idx * drawableWidth) / (points.length - 1);
+    };
+
+    const getLoadY = (val) => {
+      const drawableHeight = chartHeight - paddingTop - paddingBottom;
+      return chartHeight - paddingBottom - (val * drawableHeight) / maxLoad;
+    };
+
+    const getRecY = (val) => {
+      const drawableHeight = chartHeight - paddingTop - paddingBottom;
+      return chartHeight - paddingBottom - ((val - 1) * drawableHeight) / 4;
+    };
+
+    const loadPoints = points.map((p, idx) => ({ x: getX(idx), y: getLoadY(p.load), val: p.load }));
+    const sleepPoints = points
+      .map((p, idx) => p.sleep !== null ? { x: getX(idx), y: getRecY(p.sleep), val: p.sleep } : null)
+      .filter(p => p !== null);
+    const fatiguePoints = points
+      .map((p, idx) => p.fatigue !== null ? { x: getX(idx), y: getRecY(p.fatigue), val: p.fatigue } : null)
+      .filter(p => p !== null);
+
+    const loadPath = loadPoints.reduce((acc, p, idx) => acc + `${idx === 0 ? "M" : "L"} ${p.x} ${p.y} `, "");
+    const sleepPath = sleepPoints.reduce((acc, p, idx) => acc + `${idx === 0 ? "M" : "L"} ${p.x} ${p.y} `, "");
+    const fatiguePath = fatiguePoints.reduce((acc, p, idx) => acc + `${idx === 0 ? "M" : "L"} ${p.x} ${p.y} `, "");
+
+    return (
+      <div className="card chart-card-dash" style={{ marginBottom: "1.5rem" }}>
+        <div className="card-title">Cardio Load vs. Next-Day Recovery Impact</div>
+        <p style={{ fontSize: "0.8rem", color: "var(--color-text-muted)", marginBottom: "0.75rem", lineHeight: "1.4" }}>
+          Correlates cardio training load (duration × intensity) with the next day's sleep quality and fatigue levels.
+        </p>
+        <div className="svg-chart-container">
+          <svg className="svg-chart" viewBox={`0 0 ${chartWidth} ${chartHeight}`}>
+            {[0, 0.25, 0.5, 0.75, 1].map((ratio, idx) => {
+              const val = Math.round(maxLoad * ratio);
+              const y = getLoadY(val);
+              return (
+                <g key={`l-${idx}`} className="grid-line-group">
+                  <line x1={paddingLeft} y1={y} x2={chartWidth - paddingRight} y2={y} stroke="var(--border-color)" strokeWidth="1" />
+                  <text x={paddingLeft - 8} y={y + 4} fill="var(--color-text-muted)" fontSize="9" textAnchor="end">{val}</text>
+                </g>
+              );
+            })}
+
+            {[1, 2, 3, 4, 5].map((num) => {
+              const y = getRecY(num);
+              return (
+                <text key={`r-${num}`} x={chartWidth - paddingRight + 8} y={y + 4} fill="var(--color-text-muted)" fontSize="9" textAnchor="start">
+                  {num === 5 ? "5 (Best)" : num === 1 ? "1 (Worst)" : num}
+                </text>
+              );
+            })}
+
+            {points.map((p, idx) => (
+              <text key={idx} x={getX(idx)} y={chartHeight - 10} fill="var(--color-text-muted)" fontSize="9" textAnchor="middle">
+                {p.label}
+              </text>
+            ))}
+
+            {loadPoints.length > 1 && (
+              <path d={loadPath} fill="none" stroke="var(--color-primary)" strokeWidth="3" strokeLinecap="round" className="chart-path" />
+            )}
+            {loadPoints.map((p, idx) => (
+              <g key={`l-dot-${idx}`}>
+                <circle cx={p.x} cy={p.y} r="3.5" fill="var(--bg-card-solid)" stroke="var(--color-primary)" strokeWidth="2" />
+                <title>{`Cardio Load: ${p.val}`}</title>
+              </g>
+            ))}
+
+            {sleepPoints.length > 1 && (
+              <path d={sleepPath} fill="none" stroke="var(--color-secondary)" strokeWidth="2" strokeDasharray="3,3" strokeLinecap="round" />
+            )}
+            {sleepPoints.map((p, idx) => (
+              <g key={`s-dot-${idx}`}>
+                <circle cx={p.x} cy={p.y} r="3" fill="var(--bg-card-solid)" stroke="var(--color-secondary)" strokeWidth="1.5" />
+                <title>{`Next-Day Sleep: ${p.val}/5`}</title>
+              </g>
+            ))}
+
+            {fatiguePoints.length > 1 && (
+              <path d={fatiguePath} fill="none" stroke="var(--color-warning)" strokeWidth="2" strokeDasharray="5,2" strokeLinecap="round" />
+            )}
+            {fatiguePoints.map((p, idx) => (
+              <g key={`f-dot-${idx}`}>
+                <circle cx={p.x} cy={p.y} r="3" fill="var(--bg-card-solid)" stroke="var(--color-warning)" strokeWidth="1.5" />
+                <title>{`Next-Day Fatigue: ${p.val}/5`}</title>
+              </g>
+            ))}
+          </svg>
+          <div className="chart-legend" style={{ marginTop: "0.5rem" }}>
+            <div className="legend-item"><span className="legend-dot" style={{ backgroundColor: "var(--color-primary)" }}></span><span>Cardio Load (Left Y)</span></div>
+            <div className="legend-item"><span className="legend-dot" style={{ border: "1px dashed var(--color-secondary)", backgroundColor: "transparent", borderRadius: "50%" }}></span><span>Next-Day Sleep (Right Y)</span></div>
+            <div className="legend-item"><span className="legend-dot" style={{ border: "1px dotted var(--color-warning)", backgroundColor: "transparent", borderRadius: "50%" }}></span><span>Next-Day Fatigue (Right Y)</span></div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const getLogValue = (week, sessionNum, field) => {
-    const key = `w${week}_s${sessionNum}`;
-    return cardioLogs[key]?.[field] ?? "";
+    const key = `m${currentMeso}_w${week}_s${sessionNum}`;
+    return cardioLogs[key]?.[field] ?? cardioLogs[`w${week}_s${sessionNum}`]?.[field] ?? "";
   };
 
   const getIntensityLabel = (val) => {
@@ -247,8 +436,8 @@ export default function CardioLog({
                 ? new Date(matchedWorkout.startDate).toLocaleDateString()
                 : new Date().toLocaleDateString();
 
-              const key = `w${w}_s${sNum}`;
-              const currentData = cardioLogs[key] || {};
+              const key = `m${currentMeso}_w${w}_s${sNum}`;
+              const currentData = cardioLogs[key] || cardioLogs[`w${w}_s${sNum}`] || {};
               
               onSaveCardio(key, {
                 ...currentData,
@@ -332,6 +521,9 @@ export default function CardioLog({
         </div>
       )}
 
+      {/* Cardio Load vs. Recovery Impact Chart */}
+      {renderCardioRecoveryChart()}
+
       <div className="weeks-accordion">
         {Array.from({ length: 15 }).map((_, idx) => {
           const w = idx + 1;
@@ -341,7 +533,9 @@ export default function CardioLog({
           // Calculate completed sessions in this week
           let completedCount = 0;
           for (let s = 1; s <= 3; s++) {
-            if (cardioLogs[`w${w}_s${s}`]?.completed) completedCount++;
+            if (cardioLogs[`m${currentMeso}_w${w}_s${s}`]?.completed || cardioLogs[`w${w}_s${s}`]?.completed) {
+              completedCount++;
+            }
           }
 
           return (

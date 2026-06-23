@@ -1,4 +1,4 @@
-import { EXERCISE_DB } from "../data/database";
+import { EXERCISE_DB, getExerciseMuscleSimilarity, EXERCISE_MUSCLES } from "../data/database";
 
 export default function SwapModal({
   isOpen,
@@ -10,7 +10,21 @@ export default function SwapModal({
   if (!isOpen) return null;
 
   const patternData = EXERCISE_DB[pattern];
-  const exercises = patternData ? patternData.exercises : [];
+  const rawExercises = patternData ? patternData.exercises : [];
+
+  // Calculate similarity for each alternative exercise
+  const exercisesWithScores = rawExercises.map((ex) => {
+    const similarity = getExerciseMuscleSimilarity(currentExercise, ex);
+    const muscles = EXERCISE_MUSCLES[ex] || { primary: [], secondary: [] };
+    return {
+      name: ex,
+      similarity,
+      muscles
+    };
+  });
+
+  // Sort by similarity descending
+  exercisesWithScores.sort((a, b) => b.similarity - a.similarity);
 
   const handleSelect = (ex) => {
     onSwap(ex);
@@ -29,11 +43,14 @@ export default function SwapModal({
         </div>
         <div className="modal-body">
           <p className="modal-instruction">
-            Select an alternative exercise for this slot. Equipment settings, divisors, and rep ranges will adjust automatically.
+            Select an alternative exercise for this slot. Alternatives are ranked by muscle activation profile similarity.
           </p>
           <div className="exercise-options">
-            {exercises.map((ex, idx) => {
+            {exercisesWithScores.map((item) => {
+              const ex = item.name;
               const isCurrent = ex === currentExercise;
+              const primaryTags = item.muscles.primary.slice(0, 2);
+              
               return (
                 <button
                   key={ex}
@@ -41,9 +58,21 @@ export default function SwapModal({
                   onClick={() => handleSelect(ex)}
                 >
                   <div className="option-info">
-                    <span className="option-name">{ex}</span>
-                    {idx === 0 && <span className="default-pill">Option 1 (Default)</span>}
-                    {isCurrent && <span className="active-pill">Active</span>}
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                      <span className="option-name">{ex}</span>
+                      {ex === rawExercises[0] && <span className="default-pill">Default</span>}
+                      {isCurrent && <span className="active-pill">Active</span>}
+                      <span className={`match-badge ${item.similarity >= 85 ? "high-match" : "mid-match"}`}>
+                        {item.similarity}% Match
+                      </span>
+                    </div>
+                    {primaryTags.length > 0 && (
+                      <div className="option-muscle-tags">
+                        {primaryTags.map(m => (
+                          <span key={m} className="muscle-tag">{m}</span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <span className="select-arrow">&rarr;</span>
                 </button>
@@ -64,7 +93,7 @@ export default function SwapModal({
           display: flex;
           flex-direction: column;
           gap: 0.6rem;
-          max-height: 300px;
+          max-height: 320px;
           overflow-y: auto;
           padding-right: 0.25rem;
         }
@@ -93,13 +122,13 @@ export default function SwapModal({
         .option-info {
           display: flex;
           flex-direction: column;
-          gap: 0.25rem;
+          gap: 0.35rem;
         }
         .option-name {
           font-weight: 600;
           font-size: 0.95rem;
         }
-        .default-pill, .active-pill {
+        .default-pill, .active-pill, .match-badge {
           align-self: flex-start;
           font-size: 0.65rem;
           font-weight: 700;
@@ -115,6 +144,31 @@ export default function SwapModal({
           background: color-mix(in srgb, var(--color-secondary) 15%, transparent);
           color: var(--color-secondary);
         }
+        .match-badge {
+          border: 1px solid transparent;
+        }
+        .match-badge.high-match {
+          background: rgba(0, 242, 254, 0.08);
+          border-color: rgba(0, 242, 254, 0.25);
+          color: var(--color-primary);
+        }
+        .match-badge.mid-match {
+          background: rgba(176, 38, 255, 0.08);
+          border-color: rgba(176, 38, 255, 0.25);
+          color: var(--color-accent);
+        }
+        .option-muscle-tags {
+          display: flex;
+          gap: 0.3rem;
+        }
+        .muscle-tag {
+          font-size: 0.6rem;
+          background: rgba(255, 255, 255, 0.05);
+          color: var(--color-text-muted);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          padding: 0.1rem 0.35rem;
+          border-radius: 4px;
+        }
         .select-arrow {
           font-size: 1.1rem;
           color: var(--color-text-muted);
@@ -128,3 +182,4 @@ export default function SwapModal({
     </div>
   );
 }
+

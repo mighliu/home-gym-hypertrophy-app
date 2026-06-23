@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { EXERCISE_DB } from "../data/database";
+import { compareMesocycles } from "../data/analytics";
 
 export default function Dashboard({
   workoutLogs,
   recoveryLogs,
+  cardioLogs = {},
   slotOverrides,
   currentWeek = 1,
   currentMeso = 1,
@@ -23,6 +25,13 @@ export default function Dashboard({
 }) {
   const [chartMode, setChartMode] = useState("meso"); // "meso" or "week"
   const [pacingMode, setPacingMode] = useState("duration"); // "duration" or "density"
+
+  // Round 6: Mesocycle comparison selection
+  const [mesoCompareA, setMesoCompareA] = useState(currentMeso);
+  const [mesoCompareB, setMesoCompareB] = useState(currentMeso > 1 ? currentMeso - 1 : 1);
+
+  // Round 6: Volume view mode toggle
+  const [volumeViewMode, setVolumeViewMode] = useState("list"); // "list" or "radar"
 
   const getPacingStats = (sorted) => {
     if (sorted.length === 0) return { avgMin: 0, maxMin: 0, minMin: 0, avgDensity: 0, total: 0 };
@@ -730,8 +739,275 @@ export default function Dashboard({
     );
   };
 
+  const renderMesoComparison = () => {
+    const comp = compareMesocycles(workoutLogs, recoveryLogs, sessionLogs, cardioLogs, mesoCompareB, mesoCompareA);
+    
+    const getDeltaColor = (delta) => {
+      if (delta.direction === "up") return "var(--color-secondary)";
+      if (delta.direction === "down") return "var(--color-error)";
+      return "var(--color-text-muted)";
+    };
+    
+    const getDeltaArrow = (delta) => {
+      if (delta.direction === "up") return "▲";
+      if (delta.direction === "down") return "▼";
+      return "●";
+    };
+
+    return (
+      <div className="card meso-comparison-card" style={{ marginBottom: "1.5rem" }}>
+        <div className="card-header-row compare-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border-color)", paddingBottom: "0.75rem", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <span className="card-icon" style={{ fontSize: "1.25rem" }}>🔄</span>
+            <div className="card-title" style={{ margin: "0" }}>Mesocycle Comparison Dashboard</div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <select
+              className="form-select compare-select"
+              value={mesoCompareA}
+              onChange={(e) => setMesoCompareA(parseInt(e.target.value))}
+              style={{ fontSize: "0.8rem", padding: "0.25rem 0.5rem", borderRadius: "6px" }}
+            >
+              <option value={1}>Meso 1</option>
+              <option value={2}>Meso 2</option>
+              <option value={3}>Meso 3</option>
+            </select>
+            <span style={{ fontSize: "0.8rem", color: "var(--color-text-muted)" }}>vs</span>
+            <select
+              className="form-select compare-select"
+              value={mesoCompareB}
+              onChange={(e) => setMesoCompareB(parseInt(e.target.value))}
+              style={{ fontSize: "0.8rem", padding: "0.25rem 0.5rem", borderRadius: "6px" }}
+            >
+              <option value={1}>Meso 1</option>
+              <option value={2}>Meso 2</option>
+              <option value={3}>Meso 3</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="comparison-grid">
+          <div className="comp-item">
+            <span className="comp-label">Weekly Tonnage</span>
+            <div className="comp-values">
+              <span className="comp-val">{Math.round(comp.m1.avgWeeklyTonnage).toLocaleString()} lbs</span>
+              <span className="comp-arrow">&rarr;</span>
+              <span className="comp-val highlight">{Math.round(comp.m2.avgWeeklyTonnage).toLocaleString()} lbs</span>
+              <span className="comp-delta" style={{ color: getDeltaColor(comp.deltas.tonnage) }}>
+                {getDeltaArrow(comp.deltas.tonnage)} {comp.deltas.tonnage.text}
+              </span>
+            </div>
+          </div>
+
+          <div className="comp-item">
+            <span className="comp-label">Avg Readiness</span>
+            <div className="comp-values">
+              <span className="comp-val">{Math.round(comp.m1.avgReadiness)}</span>
+              <span className="comp-arrow">&rarr;</span>
+              <span className="comp-val highlight">{Math.round(comp.m2.avgReadiness)}</span>
+              <span className="comp-delta" style={{ color: getDeltaColor(comp.deltas.readiness) }}>
+                {getDeltaArrow(comp.deltas.readiness)} {comp.deltas.readiness.text}
+              </span>
+            </div>
+          </div>
+
+          <div className="comp-item">
+            <span className="comp-label">Anchor e1RM</span>
+            <div className="comp-values">
+              <span className="comp-val">{Math.round(comp.m1.avgE1RM)} lbs</span>
+              <span className="comp-arrow">&rarr;</span>
+              <span className="comp-val highlight">{Math.round(comp.m2.avgE1RM)} lbs</span>
+              <span className="comp-delta" style={{ color: getDeltaColor(comp.deltas.e1rm) }}>
+                {getDeltaArrow(comp.deltas.e1rm)} {comp.deltas.e1rm.text}
+              </span>
+            </div>
+          </div>
+
+          <div className="comp-item">
+            <span className="comp-label">Sleep Quality</span>
+            <div className="comp-values">
+              <span className="comp-val">{comp.m1.avgSleep.toFixed(1)}/5</span>
+              <span className="comp-arrow">&rarr;</span>
+              <span className="comp-val highlight">{comp.m2.avgSleep.toFixed(1)}/5</span>
+              <span className="comp-delta" style={{ color: getDeltaColor(comp.deltas.sleep) }}>
+                {getDeltaArrow(comp.deltas.sleep)} {comp.deltas.sleep.text}
+              </span>
+            </div>
+          </div>
+
+          <div className="comp-item">
+            <span className="comp-label">Weight Change</span>
+            <div className="comp-values">
+              <span className="comp-val">{comp.m1.weightChange >= 0 ? "+" : ""}{comp.m1.weightChange.toFixed(1)} lbs</span>
+              <span className="comp-arrow">&rarr;</span>
+              <span className="comp-val highlight">{comp.m2.weightChange >= 0 ? "+" : ""}{comp.m2.weightChange.toFixed(1)} lbs</span>
+              <span className="comp-delta" style={{ color: comp.deltas.weightChangeDiff >= 0 ? "var(--color-secondary)" : "var(--color-warning)" }}>
+                {comp.deltas.weightChangeDiff >= 0 ? `+${comp.deltas.weightChangeDiff.toFixed(1)}` : comp.deltas.weightChangeDiff.toFixed(1)} lbs
+              </span>
+            </div>
+          </div>
+
+          <div className="comp-item">
+            <span className="comp-label">Cardio Minutes</span>
+            <div className="comp-values">
+              <span className="comp-val">{comp.m1.totalCardioMin} min</span>
+              <span className="comp-arrow">&rarr;</span>
+              <span className="comp-val highlight">{comp.m2.totalCardioMin} min</span>
+              <span className="comp-delta" style={{ color: getDeltaColor(comp.deltas.cardio) }}>
+                {getDeltaArrow(comp.deltas.cardio)} {comp.deltas.cardio.text}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderRadarChart = () => {
+    const muscles = [
+      "Chest",
+      "Back",
+      "Shoulders",
+      "Quads",
+      "Hamstrings/Glutes",
+      "Biceps",
+      "Triceps",
+      "Calves",
+      "Abs",
+      "Traps"
+    ];
+
+    const cx = 180;
+    const cy = 135;
+    const maxRadius = 100;
+    const mevRadius = 50;
+    const angleStep = (2 * Math.PI) / muscles.length;
+
+    const getCoordinates = (radius, angle) => {
+      return {
+        x: cx + radius * Math.cos(angle - Math.PI / 2),
+        y: cy + radius * Math.sin(angle - Math.PI / 2)
+      };
+    };
+
+    const userPoints = muscles.map((muscle, i) => {
+      const completed = muscleVolumeData[muscle] || 0;
+      const isMain = ["Chest", "Back", "Shoulders", "Quads", "Hamstrings/Glutes"].includes(muscle);
+      const landmark = volumeLandmarks?.[muscle] || { mev: isMain ? 8 : 6, mrv: isMain ? 22 : 16 };
+      const mev = landmark.mev;
+      const mrv = landmark.mrv;
+
+      let radius;
+      if (completed === 0) {
+        radius = 0;
+      } else if (completed <= mev) {
+        radius = (completed / mev) * mevRadius;
+      } else if (completed <= mrv) {
+        radius = mevRadius + ((completed - mev) / (mrv - mev)) * (maxRadius - mevRadius);
+      } else {
+        radius = maxRadius + Math.min(20, ((completed - mrv) / mrv) * (maxRadius - mevRadius));
+      }
+
+      const { x, y } = getCoordinates(radius, i * angleStep);
+      
+      let color = "var(--color-error)";
+      if (completed >= mrv) {
+        color = "var(--color-warning)";
+      } else if (completed >= mev) {
+        color = "var(--color-secondary)";
+      }
+
+      return { x, y, label: completed, color, muscle };
+    });
+
+    const userPath = userPoints.map(p => `${p.x},${p.y}`).join(" ");
+
+    const mevRingPoints = muscles.map((_, i) => {
+      const { x, y } = getCoordinates(mevRadius, i * angleStep);
+      return `${x},${y}`;
+    }).join(" ");
+
+    const mrvRingPoints = muscles.map((_, i) => {
+      const { x, y } = getCoordinates(maxRadius, i * angleStep);
+      return `${x},${y}`;
+    }).join(" ");
+
+    return (
+      <div className="radar-chart-container" style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "280px" }}>
+        <svg width="360" height="280" viewBox="0 0 360 280" className="radar-svg">
+          <polygon points={mrvRingPoints} className="radar-grid-outer" fill="rgba(0,0,0,0.2)" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
+          <polygon points={mevRingPoints} className="radar-grid-inner" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1" strokeDasharray="3,3" />
+          
+          {muscles.map((muscle, i) => {
+            const angle = i * angleStep;
+            const endCoords = getCoordinates(maxRadius, angle);
+            const labelCoords = getCoordinates(maxRadius + 22, angle);
+
+            return (
+              <g key={muscle}>
+                <line x1={cx} y1={cy} x2={endCoords.x} y2={endCoords.y} className="radar-spoke" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+                <text
+                  x={labelCoords.x}
+                  y={labelCoords.y + 3}
+                  textAnchor="middle"
+                  className="radar-label"
+                  fontSize="8"
+                  fill="var(--color-text-muted)"
+                  fontWeight="bold"
+                >
+                  {muscle}
+                </text>
+              </g>
+            );
+          })}
+
+          {userPath && (
+            <polygon points={userPath} className="radar-user-area" fill="rgba(0, 242, 254, 0.15)" stroke="var(--color-primary)" strokeWidth="2" />
+          )}
+
+          {userPoints.map((p, idx) => (
+            <g key={idx}>
+              <circle
+                cx={p.x}
+                cy={p.y}
+                r="4.5"
+                fill={p.color}
+                stroke="var(--bg-card-solid)"
+                strokeWidth="1.5"
+                className="radar-dot"
+              />
+              {p.label > 0 && (
+                <text
+                  x={p.x}
+                  y={p.y - 8}
+                  fill="white"
+                  fontSize="8"
+                  fontWeight="bold"
+                  textAnchor="middle"
+                >
+                  {p.label}
+                </text>
+              )}
+            </g>
+          ))}
+          
+          <g transform="translate(10, 265)">
+            <circle cx="5" cy="5" r="3.5" fill="var(--color-secondary)" />
+            <text x="12" y="8" fontSize="8" fill="var(--color-text-muted)">MEV-MRV</text>
+            <circle cx="70" cy="5" r="3.5" fill="var(--color-error)" />
+            <text x="77" y="8" fontSize="8" fill="var(--color-text-muted)">&lt; MEV</text>
+            <circle cx="120" cy="5" r="3.5" fill="var(--color-warning)" />
+            <text x="127" y="8" fontSize="8" fill="var(--color-text-muted)">&gt;= MRV</text>
+          </g>
+        </svg>
+      </div>
+    );
+  };
+
   return (
     <div className="dashboard-tab animated">
+      {/* MESOCYCLE COMPARISON */}
+      {renderMesoComparison()}
       {/* HEADER CARDS: ROLLING AVERAGES & DYNAMIC COACHING */}
       <div className={rolling.rhrCount > 0 || rolling.hrvCount > 0 ? "vitals-dashboard-header has-vitals" : "vitals-dashboard-header no-vitals"}>
         <div className="card metric-mini-card">
@@ -839,15 +1115,33 @@ export default function Dashboard({
       <div className="grid-2" style={{ marginTop: "1.5rem" }}>
         {/* WEEKLY VOLUME LANDMARKS */}
         <div className="card volume-landmarks-card" style={{ margin: "0" }}>
-          <div className="landmarks-header">
+          <div className="landmarks-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div className="card-title">Weekly Volume Landmarks</div>
-            <span className="badge badge-purple">Meso {currentMeso} • Week {currentWeek}</span>
+            <div style={{ display: "flex", gap: "0.3rem", alignItems: "center" }}>
+              <button
+                type="button"
+                className={`toggle-mode-btn ${volumeViewMode === "list" ? "active" : ""}`}
+                onClick={() => setVolumeViewMode("list")}
+                style={{ fontSize: "0.75rem", padding: "0.2rem 0.5rem" }}
+              >
+                List
+              </button>
+              <button
+                type="button"
+                className={`toggle-mode-btn ${volumeViewMode === "radar" ? "active" : ""}`}
+                onClick={() => setVolumeViewMode("radar")}
+                style={{ fontSize: "0.75rem", padding: "0.2rem 0.5rem" }}
+              >
+                Radar
+              </button>
+            </div>
           </div>
           <p className="landmarks-subtitle">
             Tally of completed sets for the active week compared to Minimum Effective Volume (MEV) and Maximum Recoverable Volume (MRV) targets.
           </p>
           
-          <div className="landmarks-grid">
+          {volumeViewMode === "list" ? (
+            <div className="landmarks-grid">
             {Object.entries(muscleVolumeData).map(([muscle, completed]) => {
               const isMain = ["Chest", "Back", "Shoulders", "Quads", "Hamstrings/Glutes"].includes(muscle);
               const landmark = volumeLandmarks?.[muscle] || { mev: isMain ? 8 : 6, mrv: isMain ? 22 : 16 };
@@ -908,7 +1202,10 @@ export default function Dashboard({
                 </div>
               );
             })}
-          </div>
+            </div>
+          ) : (
+            renderRadarChart()
+          )}
         </div>
 
         {/* BODYWEIGHT TREND CARD */}

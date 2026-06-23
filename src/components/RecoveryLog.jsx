@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { isNativeMobile, syncSmartwatchData } from "../data/smartwatchSync";
+import { calculateReadiness } from "../data/analytics";
 
 export default function RecoveryLog({
   recoveryLogs,
@@ -15,6 +16,10 @@ export default function RecoveryLog({
   const [successMessage, setSuccessMessage] = useState("");
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState("");
+  
+  // Sleep stages state
+  const [sleepStages, setSleepStages] = useState(null);
+  const [sleepEfficiency, setSleepEfficiency] = useState(null);
 
   const handleWatchSync = async () => {
     setSyncing(true);
@@ -25,6 +30,8 @@ export default function RecoveryLog({
       if (result.weight) setWeight(result.weight);
       if (result.rhr) setRhr(result.rhr);
       if (result.hrv) setHrv(result.hrv);
+      if (result.sleepStages) setSleepStages(result.sleepStages);
+      if (result.sleepEfficiency) setSleepEfficiency(result.sleepEfficiency);
       setSuccessMessage(result.message);
       setTimeout(() => setSuccessMessage(""), 3000);
     } else {
@@ -56,13 +63,17 @@ export default function RecoveryLog({
       weight: weight ? parseFloat(weight) : null,
       notes: notes.trim(),
       rhr: rhr ? parseInt(rhr) : null,
-      hrv: hrv ? parseInt(hrv) : null
+      hrv: hrv ? parseInt(hrv) : null,
+      sleepStages: sleepStages,
+      sleepEfficiency: sleepEfficiency
     };
 
     onAddLog(newLog);
     setNotes("");
     setRhr("");
     setHrv("");
+    setSleepStages(null);
+    setSleepEfficiency(null);
     setSuccessMessage("Log saved successfully!");
     setTimeout(() => setSuccessMessage(""), 3000);
   };
@@ -102,6 +113,84 @@ export default function RecoveryLog({
               </button>
             );
           })}
+        </div>
+      </div>
+    );
+  };
+
+  const renderHeatmap = () => {
+    const today = new Date();
+    const currentDayOfWeek = today.getDay(); 
+    const daysToMonday = currentDayOfWeek === 0 ? 6 : currentDayOfWeek - 1;
+    const startOfWeek = new Date(today.getTime() - daysToMonday * 24 * 60 * 60 * 1000);
+    const startDate = new Date(startOfWeek.getTime() - 5 * 7 * 24 * 60 * 60 * 1000);
+    
+    const days = [];
+    for (let i = 0; i < 42; i++) {
+      const dateObj = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
+      const dateStr = dateObj.toISOString().split("T")[0];
+      const log = recoveryLogs.find(l => l.date === dateStr);
+      days.push({ dateStr, dateObj, log });
+    }
+
+    const grid = [];
+    for (let row = 0; row < 7; row++) {
+      const rowDays = [];
+      for (let col = 0; col < 6; col++) {
+        rowDays.push(days[col * 7 + row]);
+      }
+      grid.push(rowDays);
+    }
+
+    const dayLabels = ["M", "T", "W", "T", "F", "S", "S"];
+
+    const getHeatmapColorClass = (dayInfo) => {
+      if (!dayInfo.log) return "heatmap-empty";
+      const { score } = calculateReadiness(dayInfo.log, recoveryLogs);
+      if (score >= 75) return "heatmap-good";
+      if (score >= 50) return "heatmap-avg";
+      if (score >= 30) return "heatmap-warn";
+      return "heatmap-bad";
+    };
+
+    return (
+      <div className="heatmap-container">
+        <h4 className="heatmap-title">🗓️ 6-Week Recovery Heatmap</h4>
+        <div className="heatmap-grid-wrapper">
+          <div className="heatmap-labels-col">
+            {dayLabels.map((l, i) => (
+              <span key={i} className="heatmap-label-row">{l}</span>
+            ))}
+          </div>
+          <div className="heatmap-cells-grid">
+            {grid.map((rowDays, rIdx) => (
+              <div key={rIdx} className="heatmap-row">
+                {rowDays.map((dayInfo, cIdx) => {
+                  const colorClass = getHeatmapColorClass(dayInfo);
+                  const readinessData = dayInfo.log ? calculateReadiness(dayInfo.log, recoveryLogs) : null;
+                  const displayLabel = dayInfo.log 
+                    ? `${dayInfo.dateStr}: Score ${readinessData.score}`
+                    : `${dayInfo.dateStr}: No log`;
+                  return (
+                    <div
+                      key={cIdx}
+                      className={`heatmap-cell ${colorClass}`}
+                      title={displayLabel}
+                      onClick={() => dayInfo.log && alert(`Readiness Details for ${dayInfo.dateStr}:\n• Score: ${readinessData.score}\n• Sleep: ${dayInfo.log.sleep}/5\n• Fatigue: ${dayInfo.log.fatigue}/5\n• Soreness: ${dayInfo.log.soreness}/5\n• RHR: ${dayInfo.log.rhr || "—"} bpm\n• HRV: ${dayInfo.log.hrv || "—"} ms\n• Notes: ${dayInfo.log.notes || "None"}`)}
+                    />
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="heatmap-key">
+          <span>Less recovered</span>
+          <div className="heatmap-cell heatmap-bad"></div>
+          <div className="heatmap-cell heatmap-warn"></div>
+          <div className="heatmap-cell heatmap-avg"></div>
+          <div className="heatmap-cell heatmap-good"></div>
+          <span>Fully recovered</span>
         </div>
       </div>
     );
@@ -165,6 +254,30 @@ export default function RecoveryLog({
             "Good (7-8h)",
             "Excellent (8h+)"
           ])}
+
+          {/* Sleep Architecture Breakdown (Round 6) */}
+          {sleepStages && (
+            <div className="sleep-stages-card card-inner-details" style={{ padding: "0.75rem", background: "rgba(255, 255, 255, 0.02)", border: "1px solid var(--border-color)", borderRadius: "8px", margin: "0.5rem 0 1.25rem 0" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", fontWeight: "600", marginBottom: "0.5rem" }}>
+                <span style={{ color: "var(--color-text-main)" }}>🛏️ Sleep Stage Architecture</span>
+                <span style={{ color: "var(--color-primary)" }}>Efficiency: {sleepEfficiency}%</span>
+              </div>
+              
+              <div className="sleep-bar-stacked" style={{ display: "flex", height: "14px", borderRadius: "7px", overflow: "hidden", background: "#111", marginBottom: "0.6rem" }}>
+                {sleepStages.deep > 0 && <div className="sleep-bar-segment stage-deep" style={{ width: `${(sleepStages.deep / (sleepStages.deep + sleepStages.rem + sleepStages.light + sleepStages.awake)) * 100}%`, background: "#b026ff", height: "100%" }} title={`Deep Sleep: ${sleepStages.deep}m`} />}
+                {sleepStages.rem > 0 && <div className="sleep-bar-segment stage-rem" style={{ width: `${(sleepStages.rem / (sleepStages.deep + sleepStages.rem + sleepStages.light + sleepStages.awake)) * 100}%`, background: "#00f2fe", height: "100%" }} title={`REM Sleep: ${sleepStages.rem}m`} />}
+                {sleepStages.light > 0 && <div className="sleep-bar-segment stage-light" style={{ width: `${(sleepStages.light / (sleepStages.deep + sleepStages.rem + sleepStages.light + sleepStages.awake)) * 100}%`, background: "#39ff14", height: "100%" }} title={`Light Sleep: ${sleepStages.light}m`} />}
+                {sleepStages.awake > 0 && <div className="sleep-bar-segment stage-awake" style={{ width: `${(sleepStages.awake / (sleepStages.deep + sleepStages.rem + sleepStages.light + sleepStages.awake)) * 100}%`, background: "#ff3860", height: "100%" }} title={`Awake: ${sleepStages.awake}m`} />}
+              </div>
+
+              <div className="sleep-stages-legend" style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", fontSize: "0.7rem", color: "var(--color-text-muted)" }}>
+                <span style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}><span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", background: "#b026ff" }}></span>Deep: {Math.round(sleepStages.deep / 60 * 10) / 10}h</span>
+                <span style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}><span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", background: "#00f2fe" }}></span>REM: {Math.round(sleepStages.rem / 60 * 10) / 10}h</span>
+                <span style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}><span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", background: "#39ff14" }}></span>Light: {Math.round(sleepStages.light / 60 * 10) / 10}h</span>
+                <span style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}><span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", background: "#ff3860" }}></span>Awake: {sleepStages.awake}m</span>
+              </div>
+            </div>
+          )}
 
           {renderRatingSelectors("Fatigue Level", fatigue, setFatigue, "fatigue", [
             "Fully Recovered",
@@ -235,6 +348,7 @@ export default function RecoveryLog({
         {/* LOG HISTORY */}
         <div className="card">
           <div className="card-title">History Logs</div>
+          {sortedLogs.length > 0 && renderHeatmap()}
           {sortedLogs.length === 0 ? (
             <div className="empty-history">
               <span className="empty-icon">📅</span>

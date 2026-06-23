@@ -312,8 +312,43 @@ export default function Settings({
               <option value="toxic-wasteland">Toxic Wasteland (Acid Green / Radioactive Yellow)</option>
               <option value="obsidian-crimson">Obsidian Crimson (Obsidian Black / Crimson Red)</option>
               <option value="spreadsheet-light">Spreadsheet Light (Google Sheets Green / Excel Blue)</option>
+              <option value="midnight-oled">Midnight OLED (Deep Pitch Black / Neon Borders)</option>
+              <option value="arctic-frost">Arctic Frost (Cool Blue / White Light Mode)</option>
+              <option value="forest-iron">Forest Iron (Muted Forest Green / Charcoal)</option>
               <option value="system">System Default (Auto-Detect Dark/Light)</option>
             </select>
+          </div>
+
+          <div className="theme-swatches-grid">
+            {[
+              { id: "cyber-neon", name: "Cyber Neon", colors: ["#00f2fe", "#39ff14", "#9b51e0"], desc: "Dark mode, cyber aesthetics" },
+              { id: "solar-flare", name: "Solar Flare", colors: ["#ff7e5f", "#feb47b", "#ff2a6d"], desc: "Warm gradients, dark mode" },
+              { id: "deep-ocean", name: "Deep Ocean", colors: ["#00c6ff", "#0072ff", "#7f00ff"], desc: "Cool water tones" },
+              { id: "toxic-wasteland", name: "Toxic Wasteland", colors: ["#39ff14", "#d4af37", "#222222"], desc: "Radioactive highlights" },
+              { id: "obsidian-crimson", name: "Obsidian Crimson", colors: ["#ff003c", "#1a0005", "#2a2a2a"], desc: "Dark red, high contrast" },
+              { id: "spreadsheet-light", name: "Spreadsheet Light", colors: ["#107c41", "#f3f2f1", "#212121"], desc: "Clean office look" },
+              { id: "midnight-oled", name: "Midnight OLED", colors: ["#000000", "#00f2fe", "#39ff14"], desc: "Pure black, neon glow" },
+              { id: "arctic-frost", name: "Arctic Frost", colors: ["#e0f7fa", "#00acc1", "#37474f"], desc: "Ice cold light mode" },
+              { id: "forest-iron", name: "Forest Iron", colors: ["#2d5a27", "#1f2421", "#e0e0e0"], desc: "Earthy green & dark metal" },
+              { id: "system", name: "System Default", colors: ["#555555", "#888888", "#cccccc"], desc: "Matches device setting" }
+            ].map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                className={`theme-swatch-card ${settings?.theme === t.id ? "active" : ""}`}
+                onClick={() => handleSettingChange("theme", t.id)}
+              >
+                <div className="theme-swatch-info">
+                  <span className="theme-swatch-name">{t.name}</span>
+                  <span className="theme-swatch-desc">{t.desc}</span>
+                </div>
+                <div className="theme-swatch-colors">
+                  {t.colors.map((c, i) => (
+                    <span key={i} className="theme-color-dot" style={{ backgroundColor: c }}></span>
+                  ))}
+                </div>
+              </button>
+            ))}
           </div>
 
           <div className="settings-section-title" style={{ marginTop: "1.25rem" }}>Individualized Muscle Volume Landmarks (Weekly Sets)</div>
@@ -358,6 +393,88 @@ export default function Settings({
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* TIMER SOUNDS & WORKOUT REMINDERS CARD */}
+        <div className="card">
+          <div className="card-title">Rest Timer & Workout Reminders</div>
+          <p style={{ fontSize: "0.85rem", color: "var(--color-text-muted)", marginBottom: "1.25rem", lineHeight: "1.4" }}>
+            Configure the audio alert and haptic feedback when the rest timer hits zero, and schedule local reminders to stay consistent.
+          </p>
+
+          <div className="settings-section-title">Rest Timer Alert Settings</div>
+          <div className="settings-inputs-grid-2" style={{ marginBottom: "1.5rem" }}>
+            <div className="form-group">
+              <label className="form-label-small">Rest Timer Sound</label>
+              <select
+                className="form-select"
+                value={settings?.timerSound ?? "chime"}
+                onChange={(e) => handleSettingChange("timerSound", e.target.value)}
+              >
+                <option value="chime">Chime (Classic Dual-Tone)</option>
+                <option value="bell">Bell (Resonant Metallic)</option>
+                <option value="buzzer">Buzzer (High-Intensity Sawtooth)</option>
+                <option value="silent">Silent (No Audio Alert)</option>
+              </select>
+            </div>
+            
+            <div className="form-group" style={{ justifyContent: "center" }}>
+              <label className="form-label-small">Haptic Vibration</label>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", height: "100%" }}>
+                <input
+                  type="checkbox"
+                  id="timerVibration"
+                  style={{ width: "18px", height: "18px", cursor: "pointer", margin: 0 }}
+                  checked={settings?.timerVibration ?? true}
+                  onChange={(e) => handleSettingChange("timerVibration", e.target.checked)}
+                />
+                <label htmlFor="timerVibration" style={{ fontSize: "0.85rem", cursor: "pointer", color: "var(--color-text-main)", margin: 0 }}>
+                  Vibrate on Completion
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div className="settings-section-title">Workout Reminder Schedule (Mobile/PWA)</div>
+          <p style={{ fontSize: "0.8rem", color: "var(--color-text-muted)", marginBottom: "0.75rem", lineHeight: "1.4" }}>
+            Select the days of the week you want to train and your target time. Reminders are suppressed if you've already completed a workout or if your recovery readiness is critically low.
+          </p>
+          
+          <div className="form-group" style={{ marginBottom: "1rem" }}>
+            <label className="form-label-small">Reminder Time</label>
+            <input
+              type="time"
+              className="form-input"
+              style={{ maxWidth: "150px", textAlign: "center" }}
+              value={settings?.reminderTime ?? "16:00"}
+              onChange={(e) => handleSettingChange("reminderTime", e.target.value)}
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label-small">Training Days</label>
+            <div className="days-checkbox-row">
+              {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((dayName) => {
+                const activeDays = settings?.reminderDays || [];
+                const isSelected = activeDays.includes(dayName);
+                return (
+                  <button
+                    key={dayName}
+                    type="button"
+                    className={`day-toggle-btn ${isSelected ? "selected" : ""}`}
+                    onClick={() => {
+                      const nextDays = isSelected
+                        ? activeDays.filter(d => d !== dayName)
+                        : [...activeDays, dayName];
+                      handleSettingChange("reminderDays", nextDays);
+                    }}
+                  >
+                    {dayName}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
@@ -792,6 +909,91 @@ export default function Settings({
           border-radius: 6px;
           background: rgba(255, 255, 255, 0.02);
           border: 1px solid var(--border-color);
+        }
+        
+        /* DAYS CHECKBOX ROW & THEME SWATCHES STYLES */
+        .days-checkbox-row {
+          display: flex;
+          gap: 0.4rem;
+          flex-wrap: wrap;
+        }
+        .day-toggle-btn {
+          padding: 0.5rem 0.8rem;
+          border-radius: 6px;
+          border: 1px solid var(--border-color);
+          background: var(--bg-input);
+          color: var(--color-text-muted);
+          font-family: var(--font-family);
+          font-size: 0.85rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .day-toggle-btn:hover {
+          border-color: var(--color-primary);
+          color: var(--color-primary);
+        }
+        .day-toggle-btn.selected {
+          background: rgba(0, 242, 254, 0.15);
+          border-color: var(--color-primary);
+          color: var(--color-primary);
+        }
+        .theme-swatches-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 0.75rem;
+          margin-top: 1rem;
+        }
+        @media (min-width: 768px) {
+          .theme-swatches-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+          }
+        }
+        .theme-swatch-card {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0.75rem;
+          border-radius: 8px;
+          border: 1px solid var(--border-color);
+          background: rgba(255, 255, 255, 0.02);
+          cursor: pointer;
+          transition: all 0.2s;
+          text-align: left;
+        }
+        .theme-swatch-card:hover {
+          border-color: rgba(0, 242, 254, 0.3);
+          background: rgba(255, 255, 255, 0.04);
+        }
+        .theme-swatch-card.active {
+          border-color: var(--color-primary);
+          background: rgba(0, 242, 254, 0.05);
+          box-shadow: 0 0 10px rgba(0, 242, 254, 0.1);
+        }
+        .theme-swatch-info {
+          display: flex;
+          flex-direction: column;
+          gap: 0.15rem;
+        }
+        .theme-swatch-name {
+          font-size: 0.85rem;
+          font-weight: 700;
+          color: var(--color-text-main);
+        }
+        .theme-swatch-desc {
+          font-size: 0.7rem;
+          color: var(--color-text-muted);
+        }
+        .theme-swatch-colors {
+          display: flex;
+          gap: 0.25rem;
+        }
+        .theme-color-dot {
+          width: 14px;
+          height: 14px;
+          border-radius: 50%;
+          border: 1px solid rgba(0, 0, 0, 0.4);
         }
       ` }} />
     </div>
