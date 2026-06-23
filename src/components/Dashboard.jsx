@@ -29,6 +29,15 @@ export default function Dashboard({
   // Round 6: Mesocycle comparison selection
   const [mesoCompareA, setMesoCompareA] = useState(currentMeso);
   const [mesoCompareB, setMesoCompareB] = useState(currentMeso > 1 ? currentMeso - 1 : 1);
+  const [isMesoCompMinimized, setIsMesoCompMinimized] = useState(() => localStorage.getItem("meso_comp_minimized") === "true");
+
+  const toggleMesoCompMinimized = () => {
+    setIsMesoCompMinimized(prev => {
+      const val = !prev;
+      localStorage.setItem("meso_comp_minimized", String(val));
+      return val;
+    });
+  };
 
   // Round 6: Volume view mode toggle
   const [volumeViewMode, setVolumeViewMode] = useState("list"); // "list" or "radar"
@@ -755,9 +764,18 @@ export default function Dashboard({
     };
 
     return (
-      <div className="card meso-comparison-card" style={{ marginBottom: "1.5rem" }}>
-        <div className="card-header-row compare-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border-color)", paddingBottom: "0.75rem", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+      <div className="card meso-comparison-card" style={{ marginBottom: isMesoCompMinimized ? "1rem" : "1.5rem" }}>
+        <div className="card-header-row compare-header" style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          borderBottom: isMesoCompMinimized ? "none" : "1px solid var(--border-color)",
+          paddingBottom: isMesoCompMinimized ? "0" : "0.75rem",
+          marginBottom: isMesoCompMinimized ? "0" : "1rem",
+          flexWrap: "wrap",
+          gap: "0.5rem"
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }} onClick={toggleMesoCompMinimized}>
             <span className="card-icon" style={{ fontSize: "1.25rem" }}>🔄</span>
             <div className="card-title" style={{ margin: "0" }}>Mesocycle Comparison Dashboard</div>
           </div>
@@ -783,82 +801,105 @@ export default function Dashboard({
               <option value={2}>Meso 2</option>
               <option value={3}>Meso 3</option>
             </select>
+            <button
+              type="button"
+              className="minimize-btn"
+              onClick={toggleMesoCompMinimized}
+              aria-label={isMesoCompMinimized ? "Expand Comparison" : "Minimize Comparison"}
+              style={{
+                background: "none",
+                border: "none",
+                color: "var(--color-text-muted)",
+                fontSize: "0.85rem",
+                cursor: "pointer",
+                padding: "0.25rem 0.5rem",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "4px",
+                transition: "background 0.2s, color 0.2s"
+              }}
+            >
+              {isMesoCompMinimized ? "▼" : "▲"}
+            </button>
           </div>
         </div>
 
-        <div className="comparison-grid">
-          <div className="comp-item">
-            <span className="comp-label">Weekly Tonnage</span>
-            <div className="comp-values">
-              <span className="comp-val">{Math.round(comp.m1.avgWeeklyTonnage).toLocaleString()} lbs</span>
-              <span className="comp-arrow">&rarr;</span>
-              <span className="comp-val highlight">{Math.round(comp.m2.avgWeeklyTonnage).toLocaleString()} lbs</span>
-              <span className="comp-delta" style={{ color: getDeltaColor(comp.deltas.tonnage) }}>
-                {getDeltaArrow(comp.deltas.tonnage)} {comp.deltas.tonnage.text}
-              </span>
+        {!isMesoCompMinimized && (
+          <div className="comparison-grid">
+            <div className="comp-item">
+              <span className="comp-label">Weekly Tonnage</span>
+              <div className="comp-values">
+                <span className="comp-val">{Math.round(comp.m1.avgWeeklyTonnage).toLocaleString()} lbs</span>
+                <span className="comp-arrow">&rarr;</span>
+                <span className="comp-val highlight">{Math.round(comp.m2.avgWeeklyTonnage).toLocaleString()} lbs</span>
+                <span className="comp-delta" style={{ color: getDeltaColor(comp.deltas.tonnage) }}>
+                  {getDeltaArrow(comp.deltas.tonnage)} {comp.deltas.tonnage.text}
+                </span>
+              </div>
             </div>
-          </div>
 
-          <div className="comp-item">
-            <span className="comp-label">Avg Readiness</span>
-            <div className="comp-values">
-              <span className="comp-val">{Math.round(comp.m1.avgReadiness)}</span>
-              <span className="comp-arrow">&rarr;</span>
-              <span className="comp-val highlight">{Math.round(comp.m2.avgReadiness)}</span>
-              <span className="comp-delta" style={{ color: getDeltaColor(comp.deltas.readiness) }}>
-                {getDeltaArrow(comp.deltas.readiness)} {comp.deltas.readiness.text}
-              </span>
+            <div className="comp-item">
+              <span className="comp-label">Avg Readiness</span>
+              <div className="comp-values">
+                <span className="comp-val">{Math.round(comp.m1.avgReadiness)}</span>
+                <span className="comp-arrow">&rarr;</span>
+                <span className="comp-val highlight">{Math.round(comp.m2.avgReadiness)}</span>
+                <span className="comp-delta" style={{ color: getDeltaColor(comp.deltas.readiness) }}>
+                  {getDeltaArrow(comp.deltas.readiness)} {comp.deltas.readiness.text}
+                </span>
+              </div>
             </div>
-          </div>
 
-          <div className="comp-item">
-            <span className="comp-label">Anchor e1RM</span>
-            <div className="comp-values">
-              <span className="comp-val">{Math.round(comp.m1.avgE1RM)} lbs</span>
-              <span className="comp-arrow">&rarr;</span>
-              <span className="comp-val highlight">{Math.round(comp.m2.avgE1RM)} lbs</span>
-              <span className="comp-delta" style={{ color: getDeltaColor(comp.deltas.e1rm) }}>
-                {getDeltaArrow(comp.deltas.e1rm)} {comp.deltas.e1rm.text}
-              </span>
+            <div className="comp-item">
+              <span className="comp-label">Anchor e1RM</span>
+              <div className="comp-values">
+                <span className="comp-val">{Math.round(comp.m1.avgE1RM)} lbs</span>
+                <span className="comp-arrow">&rarr;</span>
+                <span className="comp-val highlight">{Math.round(comp.m2.avgE1RM)} lbs</span>
+                <span className="comp-delta" style={{ color: getDeltaColor(comp.deltas.e1rm) }}>
+                  {getDeltaArrow(comp.deltas.e1rm)} {comp.deltas.e1rm.text}
+                </span>
+              </div>
             </div>
-          </div>
 
-          <div className="comp-item">
-            <span className="comp-label">Sleep Quality</span>
-            <div className="comp-values">
-              <span className="comp-val">{comp.m1.avgSleep.toFixed(1)}/5</span>
-              <span className="comp-arrow">&rarr;</span>
-              <span className="comp-val highlight">{comp.m2.avgSleep.toFixed(1)}/5</span>
-              <span className="comp-delta" style={{ color: getDeltaColor(comp.deltas.sleep) }}>
-                {getDeltaArrow(comp.deltas.sleep)} {comp.deltas.sleep.text}
-              </span>
+            <div className="comp-item">
+              <span className="comp-label">Sleep Quality</span>
+              <div className="comp-values">
+                <span className="comp-val">{comp.m1.avgSleep.toFixed(1)}/5</span>
+                <span className="comp-arrow">&rarr;</span>
+                <span className="comp-val highlight">{comp.m2.avgSleep.toFixed(1)}/5</span>
+                <span className="comp-delta" style={{ color: getDeltaColor(comp.deltas.sleep) }}>
+                  {getDeltaArrow(comp.deltas.sleep)} {comp.deltas.sleep.text}
+                </span>
+              </div>
             </div>
-          </div>
 
-          <div className="comp-item">
-            <span className="comp-label">Weight Change</span>
-            <div className="comp-values">
-              <span className="comp-val">{comp.m1.weightChange >= 0 ? "+" : ""}{comp.m1.weightChange.toFixed(1)} lbs</span>
-              <span className="comp-arrow">&rarr;</span>
-              <span className="comp-val highlight">{comp.m2.weightChange >= 0 ? "+" : ""}{comp.m2.weightChange.toFixed(1)} lbs</span>
-              <span className="comp-delta" style={{ color: comp.deltas.weightChangeDiff >= 0 ? "var(--color-secondary)" : "var(--color-warning)" }}>
-                {comp.deltas.weightChangeDiff >= 0 ? `+${comp.deltas.weightChangeDiff.toFixed(1)}` : comp.deltas.weightChangeDiff.toFixed(1)} lbs
-              </span>
+            <div className="comp-item">
+              <span className="comp-label">Weight Change</span>
+              <div className="comp-values">
+                <span className="comp-val">{comp.m1.weightChange >= 0 ? "+" : ""}{comp.m1.weightChange.toFixed(1)} lbs</span>
+                <span className="comp-arrow">&rarr;</span>
+                <span className="comp-val highlight">{comp.m2.weightChange >= 0 ? "+" : ""}{comp.m2.weightChange.toFixed(1)} lbs</span>
+                <span className="comp-delta" style={{ color: comp.deltas.weightChangeDiff >= 0 ? "var(--color-secondary)" : "var(--color-warning)" }}>
+                  {comp.deltas.weightChangeDiff >= 0 ? `+${comp.deltas.weightChangeDiff.toFixed(1)}` : comp.deltas.weightChangeDiff.toFixed(1)} lbs
+                </span>
+              </div>
             </div>
-          </div>
 
-          <div className="comp-item">
-            <span className="comp-label">Cardio Minutes</span>
-            <div className="comp-values">
-              <span className="comp-val">{comp.m1.totalCardioMin} min</span>
-              <span className="comp-arrow">&rarr;</span>
-              <span className="comp-val highlight">{comp.m2.totalCardioMin} min</span>
-              <span className="comp-delta" style={{ color: getDeltaColor(comp.deltas.cardio) }}>
-                {getDeltaArrow(comp.deltas.cardio)} {comp.deltas.cardio.text}
-              </span>
+            <div className="comp-item">
+              <span className="comp-label">Cardio Minutes</span>
+              <div className="comp-values">
+                <span className="comp-val">{comp.m1.totalCardioMin} min</span>
+                <span className="comp-arrow">&rarr;</span>
+                <span className="comp-val highlight">{comp.m2.totalCardioMin} min</span>
+                <span className="comp-delta" style={{ color: getDeltaColor(comp.deltas.cardio) }}>
+                  {getDeltaArrow(comp.deltas.cardio)} {comp.deltas.cardio.text}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     );
   };
@@ -1469,6 +1510,10 @@ export default function Dashboard({
         }
 
         /* TOGGLE MODE STYLES */
+        .minimize-btn:hover {
+          color: white !important;
+          background: rgba(255, 255, 255, 0.08) !important;
+        }
         .chart-header-row {
           display: flex;
           align-items: center;
