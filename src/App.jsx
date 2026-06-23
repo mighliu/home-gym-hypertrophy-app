@@ -6,7 +6,6 @@ import RestTimer from "./components/RestTimer";
 import CardioLog from "./components/CardioLog";
 import History from "./components/History";
 import Settings from "./components/Settings";
-import AuthScreen from "./components/AuthScreen";
 import Insights from "./components/Insights";
 import { 
   initFirebase, 
@@ -829,14 +828,7 @@ export default function App() {
 
   return (
     <div className="app-container">
-      {cloudSyncEnabled && !firebaseUser ? (
-        <AuthScreen
-          onLogin={handleCloudLogin}
-          onRegister={handleCloudRegister}
-          onResetPassword={handleCloudResetPassword}
-        />
-      ) : (
-        <>
+      <>
           {/* HEADER */}
           <header className="app-header">
             <div className="brand-section">
@@ -1095,7 +1087,6 @@ export default function App() {
             </div>
           )}
         </>
-      )}
     </div>
   );
 }
