@@ -104,7 +104,7 @@ The app is built using a hybrid web-native approach:
 
 ### 1. Clone & Install
 ```bash
-git clone https://github.com/Kasdu/home-gym-hypertrophy-app.git
+git clone https://github.com/mighliu/home-gym-hypertrophy-app.git
 cd home-gym-hypertrophy-app
 npm install
 ```
