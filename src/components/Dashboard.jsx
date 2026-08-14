@@ -27,8 +27,8 @@ export default function Dashboard({
   const [pacingMode, setPacingMode] = useState("duration"); // "duration" or "density"
 
   // Round 6: Mesocycle comparison selection
-  const [mesoCompareA, setMesoCompareA] = useState(currentMeso);
-  const [mesoCompareB, setMesoCompareB] = useState(currentMeso > 1 ? currentMeso - 1 : 1);
+  const [mesoCompareA, setMesoCompareA] = useState(currentMeso > 1 ? currentMeso - 1 : 1);
+  const [mesoCompareB, setMesoCompareB] = useState(currentMeso === 1 ? 2 : currentMeso);
   const [isMesoCompMinimized, setIsMesoCompMinimized] = useState(() => localStorage.getItem("meso_comp_minimized") === "true");
 
   const toggleMesoCompMinimized = () => {
@@ -749,7 +749,7 @@ export default function Dashboard({
   };
 
   const renderMesoComparison = () => {
-    const comp = compareMesocycles(workoutLogs, recoveryLogs, sessionLogs, cardioLogs, mesoCompareB, mesoCompareA);
+    const comp = compareMesocycles(workoutLogs, recoveryLogs, sessionLogs, cardioLogs, mesoCompareA, mesoCompareB);
     
     const getDeltaColor = (delta) => {
       if (delta.direction === "up") return "var(--color-secondary)";
