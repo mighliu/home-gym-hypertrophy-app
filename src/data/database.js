@@ -368,7 +368,7 @@ export const DEFAULT_SPLITS = {
       exercises: [
         { pattern: "Glutes/Hams (Hinge)", exercise: "Barbell Deficit Deadlift", rack: "Floor Pull", baseline: 205, tempo: "3-1-1-0", ss: "" },
         { pattern: "Hamstring Hinge", exercise: "Barbell Stiff-Leg Deadlift", rack: "-", baseline: 145, tempo: "3-1-1-0", ss: "" },
-        { pattern: "Quads (Unilateral)", exercise: "Barbell Front Squat", rack: "Safety Pin #6", baseline: 115, tempo: "3-1-1-0", ss: "" },
+        { pattern: "Quads (Unilateral)", exercise: "Barbell Reverse Lunge", rack: "Safety Pin #6", baseline: 115, tempo: "3-1-1-0", ss: "" },
         { pattern: "Hamstring Isolation", exercise: "Slider Leg Curl", rack: "-", baseline: 0, tempo: "4-1-2-0", ss: "A1" },
         { pattern: "Calves", exercise: "Kettlebell Calf Raise", rack: "-", baseline: 35, tempo: "3-2-1-1", ss: "A2" },
         { pattern: "Traps", exercise: "Barbell Behind-the-Back Shrug", rack: "-", baseline: 155, tempo: "2-1-1-1", ss: "" }

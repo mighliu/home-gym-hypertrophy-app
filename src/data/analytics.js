@@ -345,6 +345,15 @@ export const generateWeeklySummaryText = (workoutLogs, recoveryLogs, cardioLogs,
     : "N/A";
 
   let wtChange = "N/A";
+  const weightLogs = weekRecLogs
+    .filter(l => l.weight)
+    .sort((a, b) => (a.timestamp || new Date(a.date).getTime()) - (b.timestamp || new Date(b.date).getTime()));
+  if (weightLogs.length >= 2) {
+    const diff = parseFloat(weightLogs[weightLogs.length - 1].weight) - parseFloat(weightLogs[0].weight);
+    wtChange = `${diff >= 0 ? "+" : ""}${diff.toFixed(1)} lbs`;
+  } else if (weightLogs.length === 1) {
+    wtChange = `${weightLogs[0].weight} lbs (1 entry)`;
+  }
 
   let cardioSessions = 0;
   let cardioDuration = 0;
@@ -537,8 +546,8 @@ export const getE1RMHistory = (workoutLogs, exerciseName) => {
 
     const e1RM = w * (1 + r / 30);
     const sessionPrefix = parts.slice(0, 3).join("-");
-    const date = log.date || new Date(log.timestamp).toISOString().split("T")[0];
-    const timestamp = log.timestamp || new Date(date).getTime();
+    const date = log.date || (log.timestamp ? new Date(log.timestamp).toISOString().split("T")[0] : "");
+    const timestamp = log.timestamp || (log.date ? new Date(log.date).getTime() : 0);
 
     if (!sessionE1rm[sessionPrefix] || e1RM > sessionE1rm[sessionPrefix].e1RM) {
       sessionE1rm[sessionPrefix] = { e1RM, date, timestamp };

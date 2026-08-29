@@ -130,30 +130,18 @@ export default function Dashboard({
     });
 
     Object.keys(workoutLogs).forEach(key => {
-      const firstDash = key.indexOf("-");
-      if (firstDash === -1) return;
-      const secondDash = key.indexOf("-", firstDash + 1);
-      if (secondDash === -1) return;
-      const thirdDash = key.indexOf("-", secondDash + 1);
-      if (thirdDash === -1) return;
+      if (!key.startsWith(`${currentMeso}-${currentWeek}-`)) return;
+      const parts = key.split("-");
+      if (parts.length < 5) return;
+      const exName = parts.slice(3, -1).join("-");
       
-      const m = key.substring(0, firstDash);
-      const w = key.substring(firstDash + 1, secondDash);
-      
-      const lastDash = key.lastIndexOf("-");
-      if (lastDash <= thirdDash) return;
-      
-      const exName = key.substring(thirdDash + 1, lastDash);
-      
-      if (m === String(currentMeso) && w === String(currentWeek)) {
-        const log = workoutLogs[key];
-        if (log && log.completed) {
-          const pattern = exerciseToPattern[exName];
-          if (pattern) {
-            const muscleGroup = patternToMuscleGroup[pattern];
-            if (muscleGroup && muscleSets[muscleGroup] !== undefined) {
-              muscleSets[muscleGroup] += 1;
-            }
+      const log = workoutLogs[key];
+      if (log && log.completed) {
+        const pattern = exerciseToPattern[exName];
+        if (pattern) {
+          const muscleGroup = patternToMuscleGroup[pattern];
+          if (muscleGroup && muscleSets[muscleGroup] !== undefined) {
+            muscleSets[muscleGroup] += 1;
           }
         }
       }

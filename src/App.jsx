@@ -779,7 +779,7 @@ export default function App() {
             5: 2,
             2.5: 1
           };
-          const importedSettings = data.settings || {
+          const defaultSettings = {
             bbWeight: 45,
             ezWeight: 14,
             dbWeight: 12,
@@ -787,11 +787,13 @@ export default function App() {
             rackBench: "4",
             rackIncline: "8",
             rackSafety: "5",
-            theme: "cyber-neon"
+            theme: "cyber-neon",
+            timerSound: "chime",
+            timerVibration: true,
+            reminderDays: [],
+            reminderTime: "16:00"
           };
-          if (!importedSettings.theme) {
-            importedSettings.theme = "cyber-neon";
-          }
+          const importedSettings = { ...defaultSettings, ...(data.settings || {}) };
           
           // Save to state
           updateLocalChange();

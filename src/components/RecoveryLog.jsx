@@ -57,13 +57,13 @@ export default function RecoveryLog({
       date: key,
       timestamp: dateObj.getTime(),
       displayDate: dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-      sleep: parseInt(sleep),
-      fatigue: parseInt(fatigue),
-      soreness: parseInt(soreness),
+      sleep: parseInt(sleep, 10),
+      fatigue: parseInt(fatigue, 10),
+      soreness: parseInt(soreness, 10),
       weight: weight ? parseFloat(weight) : null,
       notes: notes.trim(),
-      rhr: rhr ? parseInt(rhr) : null,
-      hrv: hrv ? parseInt(hrv) : null,
+      rhr: rhr ? parseInt(rhr, 10) : null,
+      hrv: hrv ? parseInt(hrv, 10) : null,
       sleepStages: sleepStages,
       sleepEfficiency: sleepEfficiency
     };

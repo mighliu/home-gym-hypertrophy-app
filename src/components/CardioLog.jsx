@@ -444,7 +444,9 @@ export default function CardioLog({
                 duration: durationMin,
                 notes: `Synced from smartwatch (${workoutType}${caloriesBurned ? `, ${caloriesBurned} kcal` : ""}) on ${dateStr}`,
                 completed: true,
-                synced: true
+                synced: true,
+                date: matchedWorkout.startDate ? new Date(matchedWorkout.startDate).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+                timestamp: matchedWorkout.startDate ? new Date(matchedWorkout.startDate).getTime() : Date.now()
               });
               matchedCount++;
             }

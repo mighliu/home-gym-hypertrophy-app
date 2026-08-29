@@ -502,8 +502,7 @@ export default function WorkoutLogger({
     }
 
     if (newCompleted) {
-      // Find custom rest time override first
-      const slotKey = `${meso}-${day}-${dayData.exercises.findIndex(e => getExName(e.exercise, dayData.exercises.indexOf(e)) === exName)}`;
+      const slotKey = `${meso}-${day}-${dayData.exercises.findIndex((e, idx) => getExName(e.exercise, idx) === exName)}`;
       const customRestVal = slotOverrides[slotKey]?.restTime;
       let seconds = 90;
 
