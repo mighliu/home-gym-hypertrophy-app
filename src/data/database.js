@@ -259,10 +259,11 @@ export const DEFAULT_SPLITS = {
         { pattern: "Horizontal Pull", exercise: "One-Arm Dumbbell Row", rack: "-", baseline: 50, tempo: "3-1-1-0", ss: "" },
         { pattern: "Horizontal Push", exercise: "Flat Dumbbell Bench Press", rack: "-", baseline: 50, tempo: "3-1-1-0", ss: "" },
         { pattern: "Front Delts / OHP", exercise: "Standing Barbell Overhead Press", rack: "-", baseline: 95, tempo: "3-1-1-0", ss: "" },
-        { pattern: "Rear Delts", exercise: "Dumbbell Rear Delt Flye", rack: "-", baseline: 10, tempo: "3-1-2-1", ss: "A1" },
-        { pattern: "Abs", exercise: "Hanging Knee Raise (on Power Rack)", rack: "-", baseline: 0, tempo: "2-1-2-1", ss: "A2" },
+        { pattern: "Side Delts", exercise: "Dumbbell Leaning Lateral Raise", rack: "-", baseline: 12, tempo: "3-1-2-1", ss: "A1" },
+        { pattern: "Rear Delts", exercise: "Dumbbell Rear Delt Flye", rack: "-", baseline: 10, tempo: "3-1-2-1", ss: "A2" },
         { pattern: "Biceps", exercise: "Dumbbell Hammer Curl", rack: "-", baseline: 20, tempo: "3-1-2-1", ss: "B1" },
-        { pattern: "Triceps", exercise: "Gymnastic Ring Triceps Extensions", rack: "Strap Pin #8", baseline: 0, tempo: "3-1-2-1", ss: "B2" }
+        { pattern: "Triceps", exercise: "Gymnastic Ring Triceps Extensions", rack: "Strap Pin #8", baseline: 0, tempo: "3-1-2-1", ss: "B2" },
+        { pattern: "Abs", exercise: "Hanging Knee Raise (on Power Rack)", rack: "-", baseline: 0, tempo: "2-1-2-1", ss: "" }
       ]
     },
     {
@@ -308,10 +309,11 @@ export const DEFAULT_SPLITS = {
         { pattern: "Horizontal Pull", exercise: "One-Arm Dumbbell Row", rack: "-", baseline: 55, tempo: "3-1-1-0", ss: "" },
         { pattern: "Horizontal Push", exercise: "Weighted Floor Press (Dumbbell)", rack: "-", baseline: 50, tempo: "3-1-1-0", ss: "" },
         { pattern: "Front Delts / OHP", exercise: "Seated Dumbbell Shoulder Press", rack: "-", baseline: 35, tempo: "3-1-1-0", ss: "" },
-        { pattern: "Rear Delts", exercise: "Incline Bench Dumbbell Rear Flye", rack: "-", baseline: 10, tempo: "3-1-2-1", ss: "A1" },
-        { pattern: "Abs", exercise: "Hanging Leg Raise (on Power Rack)", rack: "-", baseline: 0, tempo: "2-1-2-1", ss: "A2" },
+        { pattern: "Side Delts", exercise: "Dumbbell Side Lateral Raise", rack: "-", baseline: 15, tempo: "3-1-2-1", ss: "A1" },
+        { pattern: "Rear Delts", exercise: "Incline Bench Dumbbell Rear Flye", rack: "-", baseline: 10, tempo: "3-1-2-1", ss: "A2" },
         { pattern: "Biceps", exercise: "EZ Bar Spider Curl (on Incline Bench)", rack: "-", baseline: 35, tempo: "3-1-2-1", ss: "B1" },
-        { pattern: "Triceps", exercise: "Band Triceps Pushdown (Anchored High)", rack: "Black Band", baseline: 0, tempo: "2-1-2-0", ss: "B2" }
+        { pattern: "Triceps", exercise: "Band Triceps Pushdown (Anchored High)", rack: "Black Band", baseline: 0, tempo: "2-1-2-0", ss: "B2" },
+        { pattern: "Abs", exercise: "Hanging Leg Raise (on Power Rack)", rack: "-", baseline: 0, tempo: "2-1-2-1", ss: "" }
       ]
     },
     {
@@ -357,10 +359,11 @@ export const DEFAULT_SPLITS = {
         { pattern: "Horizontal Pull", exercise: "One-Arm Dumbbell Row", rack: "-", baseline: 60, tempo: "3-1-1-0", ss: "" },
         { pattern: "Horizontal Push", exercise: "Close-Grip Barbell Bench Press", rack: "-", baseline: 115, tempo: "3-1-1-0", ss: "" },
         { pattern: "Front Delts / OHP", exercise: "Dumbbell Arnold Press", rack: "-", baseline: 30, tempo: "3-1-1-0", ss: "" },
-        { pattern: "Rear Delts", exercise: "Band Face Pulls (Anchored to Rack)", rack: "Red Band", baseline: 0, tempo: "2-1-2-0", ss: "A1" },
-        { pattern: "Abs", exercise: "Weighted Crunch (with Dumbbell)", rack: "-", baseline: 25, tempo: "2-1-2-1", ss: "A2" },
+        { pattern: "Side Delts", exercise: "Band Side Lateral Raise", rack: "-", baseline: 0, tempo: "3-1-2-1", ss: "A1" },
+        { pattern: "Rear Delts", exercise: "Band Face Pulls (Anchored to Rack)", rack: "Red Band", baseline: 0, tempo: "2-1-2-0", ss: "A2" },
         { pattern: "Biceps", exercise: "Dumbbell Concentration Curl", rack: "-", baseline: 15, tempo: "3-1-2-1", ss: "B1" },
-        { pattern: "Triceps", exercise: "Dumbbell OH Triceps Extension", rack: "-", baseline: 25, tempo: "3-1-2-1", ss: "B2" }
+        { pattern: "Triceps", exercise: "Dumbbell OH Triceps Extension", rack: "-", baseline: 25, tempo: "3-1-2-1", ss: "B2" },
+        { pattern: "Abs", exercise: "Weighted Crunch (with Dumbbell)", rack: "-", baseline: 25, tempo: "2-1-2-1", ss: "" }
       ]
     },
     {

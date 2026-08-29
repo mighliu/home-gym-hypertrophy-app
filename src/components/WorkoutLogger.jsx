@@ -602,7 +602,7 @@ export default function WorkoutLogger({
       reason = "Intensification week. Load +5 lbs.";
     } else if (week === 4) {
       recWeight = prevSet.weight + increment;
-      reason = "Overreach week. Go for max load.";
+      reason = "Overreach week. Max load (0 RIR). Optional: 3–5 stretch partials at the end of isolation sets.";
     } else if (week === 5) {
       recWeight = Math.max(profile.barWeight, mround(prevSet.weight * 0.7, 5));
       recReps = Math.max(5, prevSet.reps - 2);
