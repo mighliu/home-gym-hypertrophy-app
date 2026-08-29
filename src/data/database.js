@@ -64,7 +64,9 @@ export const EXERCISE_DB = {
       "Band Face Pulls (Anchored to Rack)",
       "Dumbbell Rear Delt Flye",
       "Incline Bench Dumbbell Rear Flye",
-      "Band Pull-Aparts"
+      "Band Pull-Aparts",
+      "Band Face Pull with External Rotation (W-Raise)",
+      "Incline Prone Y-Raise"
     ]
   },
   "Quads": {
@@ -148,7 +150,7 @@ export const EXERCISE_DB = {
     ]
   },
   "Calves": {
-    rr: "12-15",
+    rr: "8-12 (Standing) | 15-20 (Seated)",
     exercises: [
       "Standing Barbell Calf Raise (in Rack)",
       "Seated Dumbbell Calf Raise",
@@ -430,6 +432,8 @@ export const EXERCISE_MUSCLES = {
   "Dumbbell Rear Delt Flye": { primary: ["Shoulders"], secondary: [] },
   "Incline Bench Dumbbell Rear Flye": { primary: ["Shoulders"], secondary: [] },
   "Band Pull-Aparts": { primary: ["Shoulders"], secondary: ["Traps"] },
+  "Band Face Pull with External Rotation (W-Raise)": { primary: ["Shoulders"], secondary: ["Traps", "Back"] },
+  "Incline Prone Y-Raise": { primary: ["Shoulders", "Traps"], secondary: ["Back"] },
 
   // Quads
   "High Bar Barbell Squat": { primary: ["Quads"], secondary: ["Glutes", "Hamstrings"] },

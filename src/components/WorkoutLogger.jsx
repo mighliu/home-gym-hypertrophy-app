@@ -853,6 +853,16 @@ export default function WorkoutLogger({
     const coaching = getCoachingAdvice(exName, rawSuggested, profile, ex.pattern);
     const smartSuggestion = getSmartWeightSuggestion(workoutLogs, exName, readinessScore);
 
+    const nameLower = exName.toLowerCase();
+    const isUnilateral = ex.pattern.includes("Unilateral") ||
+      nameLower.includes("one-arm") ||
+      nameLower.includes("single-leg") ||
+      nameLower.includes("split squat") ||
+      nameLower.includes("lunge") ||
+      nameLower.includes("step-up") ||
+      nameLower.includes("concentration curl") ||
+      nameLower.includes("suitcase carry");
+
     return (
       <div key={exIdx} className={`card exercise-card ${isInsideSuperset ? "superset-card-nested" : ""}`}>
         <div className="ex-card-header">
@@ -924,6 +934,23 @@ export default function WorkoutLogger({
             </div>
           </div>
         </div>
+
+        {isUnilateral && (
+          <div className="unilateral-pacing-banner" style={{
+            fontSize: "0.78rem",
+            color: "var(--color-primary)",
+            background: "rgba(0, 242, 254, 0.06)",
+            border: "1px solid rgba(0, 242, 254, 0.2)",
+            borderRadius: "6px",
+            padding: "0.35rem 0.6rem",
+            marginBottom: "0.75rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.4rem"
+          }}>
+            <span>⚡ <strong>Unilateral Pacing:</strong> Rest 30–45s between sides to protect 2nd-side power, then 90s after both sides.</span>
+          </div>
+        )}
 
         {/* Dynamic Coach Progressive Overload Suggestions */}
         {coaching.detail && (
