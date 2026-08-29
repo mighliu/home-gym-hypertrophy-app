@@ -47,13 +47,13 @@ export default function Settings({
   const applyPreset = (presetType) => {
     let presetObj = {};
     if (presetType === "standard") {
-      presetObj = { 45: 1, 35: 1, 25: 1, 10: 2, 5: 2, 2.5: 1 };
+      presetObj = { 45: 1, 35: 1, 25: 1, 10: 2, 5: 2, 2.5: 1, 1.25: 1 };
     } else if (presetType === "heavy") {
-      presetObj = { 45: 2, 35: 1, 25: 1, 10: 2, 5: 2, 2.5: 1 };
+      presetObj = { 45: 2, 35: 1, 25: 1, 10: 2, 5: 2, 2.5: 1, 1.25: 1 };
     } else if (presetType === "olympic") {
-      presetObj = { 45: 2, 35: 0, 25: 2, 10: 2, 5: 2, 2.5: 1 };
+      presetObj = { 45: 2, 35: 0, 25: 2, 10: 2, 5: 2, 2.5: 1, 1.25: 1 };
     } else if (presetType === "light") {
-      presetObj = { 45: 1, 35: 0, 25: 1, 10: 1, 5: 2, 2.5: 1 };
+      presetObj = { 45: 1, 35: 0, 25: 1, 10: 1, 5: 2, 2.5: 1, 1.25: 1 };
     }
     onUpdatePlateInventory(presetObj);
   };
@@ -66,6 +66,7 @@ export default function Settings({
       case 10: return "#39ff14";
       case 5: return "#ffffff";
       case 2.5: return "#7f8c8d";
+      case 1.25: return "#94a3b8";
       default: return "#cccccc";
     }
   };

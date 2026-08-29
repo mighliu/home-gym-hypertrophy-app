@@ -164,7 +164,8 @@ export default function App() {
       25: 1,
       10: 2,
       5: 2,
-      2.5: 1
+      2.5: 1,
+      1.25: 1
     };
   });
 
@@ -777,7 +778,8 @@ export default function App() {
             25: 1,
             10: 2,
             5: 2,
-            2.5: 1
+            2.5: 1,
+            1.25: 1
           };
           const defaultSettings = {
             bbWeight: 45,

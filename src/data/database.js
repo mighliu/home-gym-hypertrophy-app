@@ -229,7 +229,7 @@ export const WEEKS = [
   { label: "Week 2 — Accumulation", setsComp: 3, setsIso: 2, rir: "2 RIR", weightPct: 0.91, isDeload: false },
   { label: "Week 3 — Intensification", setsComp: 3, setsIso: 3, rir: "1 RIR", weightPct: 0.94, isDeload: false },
   { label: "Week 4 — Overreach", setsComp: 4, setsIso: 3, rir: "0 RIR", weightPct: 0.97, isDeload: false },
-  { label: "Week 5 — Deload", setsComp: 2, setsIso: 2, rir: "Deload (4+ RIR)", weightPct: 0.65, isDeload: true }
+  { label: "Week 5 — Deload", setsComp: 2, setsIso: 1, rir: "Deload (4+ RIR)", weightPct: 0.80, isDeload: true }
 ];
 
 export const DEFAULT_SPLITS = {

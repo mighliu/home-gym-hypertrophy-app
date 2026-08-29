@@ -18,7 +18,7 @@ const calculatePlates = (totalWeight, profile, plateInventory) => {
   const plates = {};
   
   // Plate Inventory: dynamically checked from active user config
-  const plateTypes = [45, 35, 25, 10, 5, 2.5];
+  const plateTypes = [45, 35, 25, 10, 5, 2.5, 1.25];
   plateTypes.forEach((wt) => {
     const maxVal = plateInventory[wt] || 0;
     const qty = Math.min(maxVal, Math.floor(remaining / wt));
@@ -41,7 +41,7 @@ function PlateCalculatorModal({ data, onClose, plateInventory }) {
 
   // Flatten plates to an ordered array for visualization: e.g. [45, 10, 10, 5]
   const loadedPlates = [];
-  const plateTypes = [45, 35, 25, 10, 5, 2.5];
+  const plateTypes = [45, 35, 25, 10, 5, 2.5, 1.25];
   plateTypes.forEach((wt) => {
     const qty = plates[wt] || 0;
     for (let i = 0; i < qty; i++) {
@@ -57,6 +57,7 @@ function PlateCalculatorModal({ data, onClose, plateInventory }) {
       case 10: return { height: "95px", width: "16px", bg: "#39ff14", text: "#1f2937", label: "10" };
       case 5: return { height: "78px", width: "14px", bg: "#ffffff", text: "#1f2937", label: "5" };
       case 2.5: return { height: "62px", width: "12px", bg: "#7f8c8d", text: "white", label: "2.5" };
+      case 1.25: return { height: "50px", width: "10px", bg: "#94a3b8", text: "#0a0d14", label: "1.25" };
       default: return { height: "60px", width: "12px", bg: "#ccc", text: "black", label: "" };
     }
   };
@@ -531,14 +532,16 @@ export default function WorkoutLogger({
   const isUpperDay = day === 1 || day === 3;
   const mobilityList = isUpperDay
     ? [
-        { id: "passthrough", name: "Band Passthroughs", reps: "10-15 reps", desc: "Hold band wide, pass overhead to lower back. Keeps shoulders mobile." },
-        { id: "pullapart", name: "Band Pull-Aparts", reps: "15-20 reps", desc: "Hold band at chest height, pull outward and squeeze shoulder blades." },
-        { id: "shrug", name: "Gymnastic Ring Scapular Shrugs", reps: "10-12 reps", desc: "Hang from rings, retract and shrug shoulders down with straight arms." }
+        { id: "passthrough", name: "Band Passthroughs & Dislocates", reps: "10-12 reps", desc: "Open anterior deltoids & pecs with light resistance band." },
+        { id: "pullapart", name: "Band Pull-Aparts & W-Rotations", reps: "15 reps", desc: "Fire rear delts, lower traps & external rotators." },
+        { id: "tspine", name: "Thoracic Spine Extensions / Cat-Cow", reps: "8-10 breaths", desc: "Mobilize T-spine extension for pressing and power rack posture." },
+        { id: "wristprep", name: "Wrist & Forearm Extension Rocks", reps: "10 rocks", desc: "Prepare wrists, elbows & palms for heavy pressing/pulling load." }
       ]
     : [
-        { id: "cossack", name: "BW Cossack Squats", reps: "6-8 per side", desc: "Perform deep lateral lunges, rotating the trailing toe upward." },
-        { id: "stretch", name: "World's Greatest Stretch", reps: "3 per side", desc: "Lunge forward, drop elbow to inside, rotate torso and reach to sky." },
-        { id: "goodmorning", name: "Band Good Mornings", reps: "15-20 reps", desc: "Step on resistance band, loop around neck, hinge hips back with flat back." }
+        { id: "hip9090", name: "90/90 Hip Internal/External Flow", reps: "6 per side", desc: "Unlock acetabulofemoral hip capsule rotation." },
+        { id: "anklerocks", name: "Ankle Dorsiflexion Wall Rocks", reps: "10 per side", desc: "Maximize talocrural ankle mobility for deep knee flexion." },
+        { id: "squatpry", name: "Deep Squat Pry with Rack / Goblet Hold", reps: "45-60 sec", desc: "Open adductors and pelvis at the bottom of the squat." },
+        { id: "glutebridge", name: "Glute Bridges with 2s Squeeze", reps: "12 reps", desc: "Potentiate gluteus maximus drive before heavy squats and hinges." }
       ];
 
   const handleMobilityToggle = (id) => {
@@ -606,9 +609,9 @@ export default function WorkoutLogger({
         recWeight = prevSet.weight + increment;
         reason = "Overreach week. Go for max load (0 RIR).";
       } else if (week === 5) {
-        recWeight = Math.max(profile.barWeight, mround(prevSet.weight * 0.7, 5));
+        recWeight = Math.max(profile.barWeight, mround(prevSet.weight * 0.8, isBb ? 5 : 2.5));
         recReps = Math.max(5, prevSet.reps - 2);
-        reason = "Deload week. Reduce weight & intensity.";
+        reason = "Deload week: Volume deload. Keep load crisp (~80%), stop at 4+ RIR.";
       }
     } else {
       // Double Progression for Isolations (rep progression before load increase)
@@ -622,9 +625,9 @@ export default function WorkoutLogger({
         recReps = prevSet.reps + 2;
         reason = "Overreach week: Max reps (0 RIR). Optional: 3–5 stretch partials at the bottom.";
       } else if (week === 5) {
-        recWeight = Math.max(profile.barWeight, mround(prevSet.weight * 0.7, 2.5));
+        recWeight = Math.max(profile.barWeight, mround(prevSet.weight * 0.8, 2.5));
         recReps = Math.max(8, prevSet.reps - 3);
-        reason = "Deload week. Reduce volume & intensity.";
+        reason = "Deload week: Cut sets, keep crisp form at 4+ RIR.";
       }
     }
     
@@ -863,6 +866,10 @@ export default function WorkoutLogger({
       nameLower.includes("concentration curl") ||
       nameLower.includes("suitcase carry");
 
+    const isPullUp = ex.pattern === "Vertical Pull" ||
+      nameLower.includes("pull-up") ||
+      nameLower.includes("chin-up");
+
     return (
       <div key={exIdx} className={`card exercise-card ${isInsideSuperset ? "superset-card-nested" : ""}`}>
         <div className="ex-card-header">
@@ -949,6 +956,23 @@ export default function WorkoutLogger({
             gap: "0.4rem"
           }}>
             <span>⚡ <strong>Unilateral Pacing:</strong> Rest 30–45s between sides to protect 2nd-side power, then 90s after both sides.</span>
+          </div>
+        )}
+
+        {isPullUp && (
+          <div className="cluster-tip-banner" style={{
+            fontSize: "0.78rem",
+            color: "var(--color-secondary)",
+            background: "rgba(57, 255, 20, 0.06)",
+            border: "1px solid rgba(57, 255, 20, 0.2)",
+            borderRadius: "6px",
+            padding: "0.35rem 0.6rem",
+            marginBottom: "0.75rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.4rem"
+          }}>
+            <span>💡 <strong>Cluster Set Tip:</strong> If plateaued at 5–6 reps, use 15s intra-set micro-rests (e.g., 3 reps → 15s rest → 2 reps → 15s rest → 2 reps) to accumulate 7–8 high-quality reps without hitting failure.</span>
           </div>
         )}
 
@@ -1254,7 +1278,7 @@ export default function WorkoutLogger({
               <span className="badge badge-muted">Checklist ({mobilityList.filter(item => {
                 const key = `${meso}-${week}-${day}-${item.id}`;
                 return checkedMobility[key];
-              }).length}/3)</span>
+              }).length}/{mobilityList.length})</span>
             )}
             <span className="chevron-icon">{mobilityCollapsed ? "▲" : "▼"}</span>
           </div>
