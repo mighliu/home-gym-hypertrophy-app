@@ -509,6 +509,24 @@ export default function CardioLog({
         </p>
       </div>
 
+      {/* CARDIO TIMING STRATEGY GUIDE */}
+      <div className="card timing-guide-card" style={{ marginBottom: "1.25rem", borderLeft: "4px solid var(--color-secondary)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
+          <span style={{ fontSize: "1.25rem" }}>⏱️</span>
+          <h4 style={{ margin: 0, fontSize: "0.95rem", color: "var(--color-secondary)" }}>Cardio Timing & Interference Management</h4>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "0.75rem", fontSize: "0.85rem", color: "var(--color-text-muted)" }}>
+          <div style={{ background: "var(--bg-input)", padding: "0.6rem 0.75rem", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.05)" }}>
+            <strong style={{ color: "var(--color-text-main)", display: "block", marginBottom: "0.2rem" }}>🟢 Zone 2 Cardio (Walks)</strong>
+            <span>Best on <strong>Rest Days</strong> (Wed/Sat/Sun) or immediately after Upper Body days. Keeps heart healthy without taxing leg drive.</span>
+          </div>
+          <div style={{ background: "var(--bg-input)", padding: "0.6rem 0.75rem", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.05)" }}>
+            <strong style={{ color: "var(--color-text-main)", display: "block", marginBottom: "0.2rem" }}>🟡 GPP Intervals & KB Swings</strong>
+            <span>Keep under 15–20 mins. Perform post-workout on <strong>Upper Days</strong>. Avoid within 24h prior to Squat/Deadlift days to protect lower body force output.</span>
+          </div>
+        </div>
+      </div>
+
       {/* AUTOREGULATION ALERT BANNER */}
       {isOverreached && (
         <div className="autoreg-alert-banner">

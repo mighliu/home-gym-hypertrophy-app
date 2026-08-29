@@ -577,7 +577,7 @@ export default function WorkoutLogger({
     return bestSet;
   };
 
-  const getCoachingAdvice = (exName, rawSuggested, profile) => {
+  const getCoachingAdvice = (exName, rawSuggested, profile, pattern) => {
     const prevSet = getPrevWeekLoggedSet(exName);
     if (!prevSet) {
       return {
@@ -590,23 +590,42 @@ export default function WorkoutLogger({
     let recReps = prevSet.reps;
     let reason = "Match previous week";
     
+    const isCompound = COMPOUND_PATTERNS.includes(pattern);
     const isBb = profile.equip === "BB";
     const isDb = profile.equip === "DB";
     const increment = isBb ? 5 : (isDb ? 5 : 2.5);
     
-    if (week === 2) {
-      recReps = prevSet.reps + 1;
-      reason = "Lower RIR target. Attempt +1 rep.";
-    } else if (week === 3) {
-      recWeight = prevSet.weight + increment;
-      reason = "Intensification week. Load +5 lbs.";
-    } else if (week === 4) {
-      recWeight = prevSet.weight + increment;
-      reason = "Overreach week. Max load (0 RIR). Optional: 3–5 stretch partials at the end of isolation sets.";
-    } else if (week === 5) {
-      recWeight = Math.max(profile.barWeight, mround(prevSet.weight * 0.7, 5));
-      recReps = Math.max(5, prevSet.reps - 2);
-      reason = "Deload week. Reduce weight & intensity.";
+    if (isCompound) {
+      if (week === 2) {
+        recReps = prevSet.reps + 1;
+        reason = "Lower RIR target. Attempt +1 rep.";
+      } else if (week === 3) {
+        recWeight = prevSet.weight + increment;
+        reason = `Intensification week. Load +${increment} lbs.`;
+      } else if (week === 4) {
+        recWeight = prevSet.weight + increment;
+        reason = "Overreach week. Go for max load (0 RIR).";
+      } else if (week === 5) {
+        recWeight = Math.max(profile.barWeight, mround(prevSet.weight * 0.7, 5));
+        recReps = Math.max(5, prevSet.reps - 2);
+        reason = "Deload week. Reduce weight & intensity.";
+      }
+    } else {
+      // Double Progression for Isolations (rep progression before load increase)
+      if (week === 2) {
+        recReps = prevSet.reps + 1;
+        reason = "Double progression: Keep load, add +1 rep (2 RIR).";
+      } else if (week === 3) {
+        recReps = prevSet.reps + 2;
+        reason = "Double progression: Keep load, add +1–2 reps (1 RIR).";
+      } else if (week === 4) {
+        recReps = prevSet.reps + 2;
+        reason = "Overreach week: Max reps (0 RIR). Optional: 3–5 stretch partials at the bottom.";
+      } else if (week === 5) {
+        recWeight = Math.max(profile.barWeight, mround(prevSet.weight * 0.7, 2.5));
+        recReps = Math.max(8, prevSet.reps - 3);
+        reason = "Deload week. Reduce volume & intensity.";
+      }
     }
     
     return {
@@ -831,7 +850,7 @@ export default function WorkoutLogger({
     }
 
     const isFeederCollapsed = collapsedFeeders[exName] !== undefined ? collapsedFeeders[exName] : (exIdx > 0);
-    const coaching = getCoachingAdvice(exName, rawSuggested, profile);
+    const coaching = getCoachingAdvice(exName, rawSuggested, profile, ex.pattern);
     const smartSuggestion = getSmartWeightSuggestion(workoutLogs, exName, readinessScore);
 
     return (

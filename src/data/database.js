@@ -164,6 +164,8 @@ export const EXERCISE_DB = {
       "Weighted Crunch (with Dumbbell)",
       "Hanging Leg Raise (on Power Rack)",
       "Ab Wheel Rollout",
+      "Band Pallof Press",
+      "Dumbbell Suitcase Carry",
       "Dumbbell Side Bend"
     ]
   },
@@ -182,6 +184,7 @@ export const EXERCISE_DB = {
       "Barbell Wrist Curl",
       "Dumbbell Wrist Curl",
       "Farmer's Walk (Dumbbells)",
+      "Dumbbell Suitcase Carry",
       "Kettlebell Farmer's Walk"
     ]
   }
@@ -496,6 +499,8 @@ export const EXERCISE_MUSCLES = {
   "Weighted Crunch (with Dumbbell)": { primary: ["Abs"], secondary: [] },
   "Hanging Leg Raise (on Power Rack)": { primary: ["Abs"], secondary: [] },
   "Ab Wheel Rollout": { primary: ["Abs"], secondary: ["Shoulders"] },
+  "Band Pallof Press": { primary: ["Abs"], secondary: ["Shoulders"] },
+  "Dumbbell Suitcase Carry": { primary: ["Abs", "Forearms"], secondary: ["Traps"] },
   "Dumbbell Side Bend": { primary: ["Abs"], secondary: [] },
 
   // Traps
